@@ -1,0 +1,10 @@
+node_modules
+.vscode
+.env
+.eslintcache
+.postman
+.windsurf
+.codex
+package-lock.json
+test
+DEPLOYMENT.md
