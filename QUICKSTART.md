@@ -1,5 +1,14 @@
 # Quick Start Guide
 
+## Prerequisites
+
+**You need a backend to receive telemetry data:**
+
+- **SigNoz:** Run SigNoz locally using Docker (free, open-source)
+- **Grafana Cloud:** Sign up for Grafana Cloud account (paid)
+
+This package **only sends data** - you need to run SigNoz or Grafana to receive and visualize it.
+
 ## 1. Install
 
 ```bash
@@ -88,9 +97,17 @@ logger.error("Database failed", { error: err.message });
 
 ## View Your Data
 
-**SigNoz:** Open http://localhost:3301
+**Important:** `http://localhost:4318` is the OTel Collector endpoint that receives data. You don't view data there.
 
-**Grafana:** Open your Grafana Cloud dashboard
+**SigNoz:** Open your SigNoz dashboard URL (check your Docker setup for the port - commonly 3301)
+
+**Grafana:** Open your Grafana Cloud dashboard to view traces, metrics, and logs
+
+The flow is:
+
+```
+Your App → OTel Collector (4318) → SigNoz/Grafana → You view in UI
+```
 
 ---
 

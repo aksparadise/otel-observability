@@ -27,7 +27,47 @@ npm install @aksparadise/otel-observability
 
 ## Quick Start
 
-### 1. Environment Variables
+### Prerequisites
+
+**You need a backend to receive telemetry data:**
+
+- **SigNoz:** Run SigNoz locally using Docker (free, open-source)
+- **Grafana Cloud:** Sign up for Grafana Cloud account (paid)
+
+This package **only sends data** - you need to run SigNoz or Grafana to receive and visualize it.
+
+### 3 Simple Steps
+
+**1. Install:**
+
+```bash
+npm install @aksparadise/otel-observability
+```
+
+**2. Add .env file:**
+
+```env
+OTEL_ENABLED=true
+OTEL_BACKEND=signoz
+OTEL_SERVICE_NAME=my-app
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+**3. Add to top of your main file:**
+
+```javascript
+import "@aksparadise/otel-observability/otel";
+import "@aksparadise/otel-observability/logger";
+import { setupGlobalErrorHandler } from "@aksparadise/otel-observability/error-handler";
+
+setupGlobalErrorHandler();
+```
+
+**That's it!** Your app now automatically sends traces, metrics, and logs to your backend.
+
+### Detailed Setup
+
+#### 1. Environment Variables
 
 ```env
 OTEL_ENABLED=true
