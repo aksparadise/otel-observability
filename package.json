@@ -5,52 +5,52 @@
     "type": "module",
     "main": "./dist/cjs/index.cjs",
     "module": "./dist/esm/index.mjs",
-    "types": "./dist/index.d.ts",
+    "types": "./index.d.ts",
     "exports": {
         ".": {
             "import": "./dist/esm/index.mjs",
             "require": "./dist/cjs/index.cjs",
-            "types": "./dist/index.d.ts"
+            "types": "./index.d.ts"
         },
         "./otel": {
             "import": "./dist/esm/otel.mjs",
             "require": "./dist/cjs/otel.cjs",
-            "types": "./dist/otel.d.ts"
+            "types": "./otel.d.ts"
         },
         "./tracer": {
             "import": "./dist/esm/tracer.mjs",
             "require": "./dist/cjs/tracer.cjs",
-            "types": "./dist/tracer.d.ts"
+            "types": "./tracer.d.ts"
         },
         "./metrics": {
             "import": "./dist/esm/metrics.mjs",
             "require": "./dist/cjs/metrics.cjs",
-            "types": "./dist/metrics.d.ts"
+            "types": "./metrics.d.ts"
         },
         "./logger": {
             "import": "./dist/esm/logger.mjs",
             "require": "./dist/cjs/logger.cjs",
-            "types": "./dist/logger.d.ts"
+            "types": "./logger.d.ts"
         },
         "./middleware": {
             "import": "./dist/esm/middleware.mjs",
             "require": "./dist/cjs/middleware.cjs",
-            "types": "./dist/middleware.d.ts"
+            "types": "./middleware.d.ts"
         },
         "./sanitizer": {
             "import": "./dist/esm/sanitizer.mjs",
             "require": "./dist/cjs/sanitizer.cjs",
-            "types": "./dist/sanitizer.d.ts"
+            "types": "./sanitizer.d.ts"
         },
         "./error-handler": {
             "import": "./dist/esm/errorHandler.mjs",
             "require": "./dist/cjs/errorHandler.cjs",
-            "types": "./dist/errorHandler.d.ts"
+            "types": "./errorHandler.d.ts"
         },
         "./security": {
             "import": "./dist/esm/security.mjs",
             "require": "./dist/cjs/security.cjs",
-            "types": "./dist/security.d.ts"
+            "types": "./security.d.ts"
         }
     },
     "scripts": {
