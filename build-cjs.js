@@ -1,4 +1,4 @@
-// build-cjs.js - Build CommonJS output using esbuild
+// build-cjs.js - Build CommonJS output using esbuild (no bundling)
 import * as esbuild from "esbuild";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -36,8 +36,7 @@ await Promise.all(
             format: "cjs",
             platform: "node",
             target: "node18",
-            bundle: true,
-            external: ["*"],
+            bundle: false,
         });
 
         console.log(`Built ${file} to dist/cjs/${file.replace(".js", ".cjs")}`);

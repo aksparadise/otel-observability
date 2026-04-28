@@ -1,4 +1,4 @@
-// build-esm.js - Build ESM output using esbuild
+// build-esm.js - Build ESM output using esbuild (no bundling)
 import * as esbuild from "esbuild";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -36,8 +36,7 @@ await Promise.all(
             format: "esm",
             platform: "node",
             target: "node18",
-            bundle: true,
-            external: ["*"],
+            bundle: false,
         });
 
         console.log(`Built ${file} to dist/esm/${file.replace(".js", ".mjs")}`);
