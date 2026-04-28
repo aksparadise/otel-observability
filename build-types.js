@@ -1,4 +1,4 @@
-// build-types.js - Copy TypeScript definitions to root
+// build-types.js - Copy TypeScript definitions to both dist/ and root/
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -14,16 +14,28 @@ const rootDir = __dirname;
 fs.mkdirSync(distDir, { recursive: true });
 
 // Copy all .d.ts files from src to both dist/ and root/
+// Also rename errorHandler.d.ts to error-handler.d.ts for export compatibility
 const files = fs.readdirSync(srcDir);
 files.forEach((file) => {
     if (file.endsWith(".d.ts")) {
         const srcPath = path.join(srcDir, file);
-        const destPath = path.join(distDir, file);
-        const rootPath = path.join(rootDir, file);
+        let destFileName = file;
+        let rootFileName = file;
+
+        // Rename errorHandler.d.ts to error-handler.d.ts for export path compatibility
+        if (file === "errorHandler.d.ts") {
+            destFileName = "error-handler.d.ts";
+            rootFileName = "error-handler.d.ts";
+        }
+
+        const destPath = path.join(distDir, destFileName);
+        const rootPath = path.join(rootDir, rootFileName);
 
         fs.copyFileSync(srcPath, destPath);
         fs.copyFileSync(srcPath, rootPath);
-        console.log(`Copied ${file} to dist/ and root/`);
+        console.log(
+            `Copied ${file} to dist/${destFileName} and root/${rootFileName}`,
+        );
     }
 });
 

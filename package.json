@@ -45,7 +45,7 @@
         "./error-handler": {
             "import": "./dist/esm/errorHandler.mjs",
             "require": "./dist/cjs/errorHandler.cjs",
-            "types": "./errorHandler.d.ts"
+            "types": "./error-handler.d.ts"
         },
         "./security": {
             "import": "./dist/esm/security.mjs",
