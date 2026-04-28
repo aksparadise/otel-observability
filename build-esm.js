@@ -39,6 +39,11 @@ await Promise.all(
             bundle: false,
         });
 
+        // Post-process to fix internal import paths from .js to .mjs
+        let content = fs.readFileSync(destPath, "utf-8");
+        content = content.replace(/from "\.\/(.+?)\.js"/g, 'from "./$1.mjs"');
+        fs.writeFileSync(destPath, content);
+
         console.log(`Built ${file} to dist/esm/${file.replace(".js", ".mjs")}`);
     }),
 );

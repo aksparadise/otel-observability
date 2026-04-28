@@ -39,6 +39,14 @@ await Promise.all(
             bundle: false,
         });
 
+        // Post-process to fix internal require paths from .js to .cjs
+        let content = fs.readFileSync(destPath, "utf-8");
+        content = content.replaceAll(
+            /require\("\.\/(.+?)\.js"\)/g,
+            'require("./$1.cjs")',
+        );
+        fs.writeFileSync(destPath, content);
+
         console.log(`Built ${file} to dist/cjs/${file.replace(".js", ".cjs")}`);
     }),
 );
