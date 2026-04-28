@@ -38,11 +38,15 @@ GRAFANA_OTEL_ENDPOINT=https://otlp-gateway-prod-us-east-0.grafana.net/otlp
 GRAFANA_API_KEY=your-api-key
 ```
 
-## 3. Add to Your App
+## 3. Add to top of your main file:
 
-**At the very top of your main file (index.js, app.js, server.js):**
+**IMPORTANT:** Load .env BEFORE OTel imports:
 
 ```javascript
+// Load .env FIRST
+import "dotenv/config";
+
+// Then import OTel
 import "@aksparadise/otel-observability/otel";
 import "@aksparadise/otel-observability/logger";
 import { setupGlobalErrorHandler } from "@aksparadise/otel-observability/error-handler";

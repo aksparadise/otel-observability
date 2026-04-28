@@ -5,15 +5,42 @@
     "main": "src/index.js",
     "type": "module",
     "exports": {
-        ".": "./src/index.js",
-        "./otel": "./src/otel.js",
-        "./tracer": "./src/tracer.js",
-        "./metrics": "./src/metrics.js",
-        "./logger": "./src/logger.js",
-        "./middleware": "./src/middleware.js",
-        "./sanitizer": "./src/sanitizer.js",
-        "./error-handler": "./src/errorHandler.js",
-        "./security": "./src/security.js"
+        ".": {
+            "import": "./src/index.js",
+            "types": "./src/index.d.ts"
+        },
+        "./otel": {
+            "import": "./src/otel.js",
+            "types": "./src/otel.d.ts"
+        },
+        "./tracer": {
+            "import": "./src/tracer.js",
+            "types": "./src/tracer.d.ts"
+        },
+        "./metrics": {
+            "import": "./src/metrics.js",
+            "types": "./src/metrics.d.ts"
+        },
+        "./logger": {
+            "import": "./src/logger.js",
+            "types": "./src/logger.d.ts"
+        },
+        "./middleware": {
+            "import": "./src/middleware.js",
+            "types": "./src/middleware.d.ts"
+        },
+        "./sanitizer": {
+            "import": "./src/sanitizer.js",
+            "types": "./src/sanitizer.d.ts"
+        },
+        "./error-handler": {
+            "import": "./src/errorHandler.js",
+            "types": "./src/errorHandler.d.ts"
+        },
+        "./security": {
+            "import": "./src/security.js",
+            "types": "./src/security.d.ts"
+        }
     },
     "scripts": {
         "test": "vitest",

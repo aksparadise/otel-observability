@@ -55,12 +55,20 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 **3. Add to top of your main file:**
 
+**IMPORTANT:** Load .env BEFORE OTel imports:
+
 ```javascript
+// Load .env FIRST
+import "dotenv/config";
+
+// Then import OTel
 import "@aksparadise/otel-observability/otel";
 import "@aksparadise/otel-observability/logger";
 import { setupGlobalErrorHandler } from "@aksparadise/otel-observability/error-handler";
 
 setupGlobalErrorHandler();
+
+// Your app code starts here
 ```
 
 **That's it!** Your app now automatically sends traces, metrics, and logs to your backend.
