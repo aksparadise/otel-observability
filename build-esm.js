@@ -44,6 +44,16 @@ await Promise.all(
         // Post-process to fix internal import paths from .js to .mjs
         let content = fs.readFileSync(destPath, "utf-8");
         content = content.replace(/from "\.\/(.+?)\.js"/g, 'from "./$1.mjs"');
+
+        // Convert CommonJS require to ESM imports for specific modules
+        if (file === "otel.js") {
+            // Convert require("events") to import { EventEmitter } from "events"
+            content = content.replace(
+                /const EventEmitter = require\("events"\);/,
+                'import { EventEmitter } from "events";',
+            );
+        }
+
         fs.writeFileSync(destPath, content);
 
         console.log(`Built ${file} to dist/esm/${file.replace(".js", ".mjs")}`);

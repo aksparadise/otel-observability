@@ -22,6 +22,7 @@ const initializeOtel = async () => {
     if (process.env.OTEL_ENABLED === "true") {
         try {
             // Dynamic import to initialize OTel SDK
+            // Use .js extension for Node.js module resolution (works for both .js and .mjs)
             await import("./otel.js");
             return true;
         } catch (error) {
