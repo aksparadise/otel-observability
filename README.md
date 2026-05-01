@@ -53,7 +53,19 @@ dotenvExpand.expand(myEnv);
 
 // 4. Auto-setup everything
 import { setup } from "@aksparadise/otel-observability/setup";
-const observability = setup(); // Auto-detects framework and reads .env automatically
+const observability = await setup(); // Auto-detects framework and reads .env automatically
+
+// 5. Use the observability object in your application
+// Example for NestJS:
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+
+const app = await NestFactory.create(AppModule, {
+    logger: observability.logger || ["log", "error", "warn"], // Use configured logger
+});
+
+// Example for Express:
+app.use(observability.middleware); // Add tracing middleware
 ```
 
 **That's it!** The `setup()` function automatically:
@@ -62,6 +74,12 @@ const observability = setup(); // Auto-detects framework and reads .env automati
 - 📝 **Reads .env variables** to enable OTel output
 - 🛡️ **Sets up global error handling**
 - 🎯 **Enables console monkeypatching** for complete log capture
+
+**⚠️ Important:** You **must** use the `observability` object in your application for proper integration. The setup function returns:
+
+- `observability.logger` - Framework-specific logger with trace context
+- `observability.middleware` - HTTP tracing middleware (for Express/Next.js)
+- `observability.framework` - Detected framework type
 
 **⚠️ Important:** The `.env` file is still required for OTel output configuration. The setup function automatically reads these variables, so no manual configuration is needed.
 
@@ -185,12 +203,14 @@ dotenvExpand.expand(myEnv);
 
 // Auto-setup everything
 import { setup } from "@aksparadise/otel-observability/setup";
-const observability = setup(); // Auto-detects NestJS and returns logger
 
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
+    // Initialize OTel and setup observability FIRST
+    const observability = await setup(); // Auto-detects NestJS and returns logger
+
     const app = await NestFactory.create(AppModule, {
         logger: observability.logger, // Auto-configured NestJS logger
     });
