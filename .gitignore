@@ -12,3 +12,4 @@ bdev11
 bdev11.pub
 dist
 *.d.ts
+*.tgz
