@@ -54,6 +54,15 @@ await Promise.all(
             );
         }
 
+        // Fix dynamic import paths for ESM compatibility
+        if (file === "setup.js") {
+            // Convert dynamic import("./otel.js") to import("./otel.mjs")
+            content = content.replace(
+                /await import\("\.\/otel\.js"\);/,
+                'await import("./otel.mjs");',
+            );
+        }
+
         fs.writeFileSync(destPath, content);
 
         console.log(`Built ${file} to dist/esm/${file.replace(".js", ".mjs")}`);
