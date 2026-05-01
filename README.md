@@ -458,6 +458,35 @@ This will:
 7. **Error Handling**: Always use global error handler
 8. **Vulnerability Scanning**: Run security check regularly
 
+## Security & Quality
+
+This package includes automated security scanning and quality checks:
+
+```bash
+# Run security vulnerability check
+npm run security-check
+
+# Run tests with coverage
+npm run test:coverage
+
+# Lint code
+npm run lint:fix
+```
+
+### Security Features
+
+- **Automated vulnerability scanning** with npm audit
+- **Dependency safety checks** before publishing
+- **Input sanitization** for sensitive data
+- **No known security vulnerabilities** (Socket.dev verified)
+
+### Code Quality
+
+- **TypeScript definitions** included
+- **ESLint configuration** for code standards
+- **Unit tests** with Vitest coverage
+- **Automated CI/CD** checks
+
 ## License
 
 MIT

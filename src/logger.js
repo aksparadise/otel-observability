@@ -133,25 +133,72 @@ const COLOR_CODES = {
 };
 
 /**
+ * Detect actual log level based on message content
+ */
+const detectLogLevel = (message, level) => {
+    const messageStr = String(message).toLowerCase();
+
+    // Upgrade deprecation warnings to WARN level even if they come through console.error
+    if (
+        messageStr.includes("deprecationwarning") ||
+        messageStr.includes("deprecated") ||
+        messageStr.includes("[deprecation]")
+    ) {
+        return "WARN";
+    }
+
+    // Downgrade certain Node.js warnings from ERROR to WARN
+    if (
+        messageStr.includes("multiple resolves") ||
+        messageStr.includes("unhandled promise rejection") ||
+        messageStr.includes("maxlistenersexceededwarning")
+    ) {
+        return "WARN";
+    }
+
+    return level;
+};
+
+/**
  * Emit a log at the specified level
  */
 const emit = (level, severityNumber, ...args) => {
     const { message, attributes, traceId } = prepareLogRecord(level, args);
 
+    // Detect actual log level based on content
+    const actualLevel = detectLogLevel(message, level);
+    const actualSeverityNumber =
+        actualLevel === "WARN"
+            ? SeverityNumber.WARN
+            : actualLevel === "ERROR"
+              ? SeverityNumber.ERROR
+              : actualLevel === "INFO"
+                ? SeverityNumber.INFO
+                : actualLevel === "DEBUG"
+                  ? SeverityNumber.DEBUG
+                  : SeverityNumber.INFO;
+
+    // Update the log.severity attribute to match the detected level
+    attributes["log.severity"] = actualLevel;
+
     // ── Local Console Output ──
     if (
         loggerConfig.enableConsoleOutput &&
-        (!isProduction || level === "ERROR" || level === "WARN")
+        (!isProduction || actualLevel === "ERROR" || actualLevel === "WARN")
     ) {
-        const color = COLOR_CODES[level] || COLOR_CODES.RESET;
+        const color = COLOR_CODES[actualLevel] || COLOR_CODES.RESET;
         const reset = COLOR_CODES.RESET;
         const statusIcon =
-            level === "ERROR" ? "❌" : level === "WARN" ? "⚠️" : "ℹ️";
+            actualLevel === "ERROR"
+                ? "❌"
+                : actualLevel === "WARN"
+                  ? "⚠️"
+                  : "ℹ️";
         const traceInfo = traceId ? ` [trace=${traceId.slice(-6)}]` : "";
 
         const coloredLevel = loggerConfig.consoleColors
-            ? `${color}[${level}]${reset}`
-            : `[${level}]`;
+            ? `${color}[${actualLevel}]${reset}`
+            : `[${actualLevel}]`;
 
         process.stdout.write(
             `\n${statusIcon} ${coloredLevel.padEnd(10)} ${message}${traceInfo}`,
@@ -170,8 +217,8 @@ const emit = (level, severityNumber, ...args) => {
     // ── SigNoz OTel Emission ──
     if (loggerConfig.enableOtelOutput && process.env.OTEL_ENABLED === "true") {
         otelLogger.emit({
-            severityNumber,
-            severityText: level,
+            severityNumber: actualSeverityNumber,
+            severityText: actualLevel,
             body: message,
             attributes,
         });
