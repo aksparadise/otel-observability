@@ -33,6 +33,7 @@ import {
     ATTR_SERVICE_NAME,
     ATTR_SERVICE_VERSION,
 } from "@opentelemetry/semantic-conventions";
+import { EventEmitter } from "events";
 
 /**
  * Default configuration for OTel SDK
@@ -300,7 +301,6 @@ let sdk = null;
 try {
     // Fix memory leak warnings by increasing max listeners
     // This prevents "MaxListenersExceededWarning" from OTel instrumentation
-    const EventEmitter = require("events");
     EventEmitter.defaultMaxListeners = 20;
 
     sdk = initOtel();
