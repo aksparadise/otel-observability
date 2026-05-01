@@ -298,6 +298,11 @@ export const initOtel = (customConfig = {}) => {
 // ── Auto-initialize on import (unless explicitly disabled) ───────────────
 let sdk = null;
 try {
+    // Fix memory leak warnings by increasing max listeners
+    // This prevents "MaxListenersExceededWarning" from OTel instrumentation
+    const EventEmitter = require("events");
+    EventEmitter.defaultMaxListeners = 20;
+
     sdk = initOtel();
 } catch (err) {
     process.stderr.write(`\n [OTel] Initialization error: ${err.message}\n`);
