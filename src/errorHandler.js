@@ -11,7 +11,8 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { logger } from "./logger.js";
-import { recordException } from "@opentelemetry/api";
+import * as otelApi from "@opentelemetry/api";
+const { recordException } = otelApi;
 
 /**
  * Setup global error handlers for uncaught exceptions and unhandled rejections

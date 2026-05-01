@@ -28,6 +28,24 @@ npm install @aksparadise/otel-observability
 
 ## Quick Start
 
+### 🚀 Zero-Configuration Setup (Recommended)
+
+**Single import - Auto-detects and configures everything:**
+
+```typescript
+import { setup } from "@aksparadise/otel-observability/setup";
+
+// Auto-detects framework and configures optimal defaults
+setup();
+```
+
+**That's it!** The `setup()` function automatically:
+
+- 🔍 **Detects your framework** (NestJS, Express, Next.js, or vanilla)
+- 📝 **Configures logger** with optimal defaults
+- 🛡️ **Sets up global error handling**
+- 🎯 **Enables console monkeypatching** for complete log capture
+
 ### Prerequisites
 
 **You need a backend to receive telemetry data:**
@@ -37,7 +55,7 @@ npm install @aksparadise/otel-observability
 
 This package **only sends data** - you need to run SigNoz or Grafana to receive and visualize it.
 
-### 3 Simple Steps
+### Manual Setup (Advanced)
 
 **1. Install:**
 
@@ -134,7 +152,35 @@ NestJS has its own internal logging system that **bypasses standard console meth
 - ❌ **Controller logs** - All framework-level logging
 - ❌ **Error handling** - NestJS-specific error events
 
-### NestJS Setup (Required for Complete Observability)
+### 🚀 Simplified NestJS Setup (Recommended)
+
+**Single import - Auto-detects and configures everything:**
+
+```typescript
+// Load .env FIRST - before any OTel imports
+import * as dotenv from "dotenv";
+import * as dotenvExpand from "dotenv-expand";
+
+const myEnv = dotenv.config();
+dotenvExpand.expand(myEnv);
+
+// Auto-setup everything
+import { setup } from "@aksparadise/otel-observability/setup";
+const observability = setup(); // Auto-detects NestJS and returns logger
+
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+    const app = await NestFactory.create(AppModule, {
+        logger: observability.logger, // Auto-configured NestJS logger
+    });
+
+    // ... your app setup
+}
+```
+
+### Manual NestJS Setup (Advanced)
 
 **Add to your main.ts:**
 

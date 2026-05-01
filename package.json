@@ -56,6 +56,11 @@
             "import": "./dist/esm/nestjs-logger.mjs",
             "require": "./dist/cjs/nestjs-logger.cjs",
             "types": "./nestjs-logger.d.ts"
+        },
+        "./setup": {
+            "import": "./dist/esm/setup.mjs",
+            "require": "./dist/cjs/setup.cjs",
+            "types": "./setup.d.ts"
         }
     },
     "scripts": {

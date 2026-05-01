@@ -24,6 +24,7 @@ const files = [
     "errorHandler.js",
     "security.js",
     "nestjs-logger.js",
+    "setup.js",
 ];
 
 await Promise.all(
