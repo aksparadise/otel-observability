@@ -32,19 +32,38 @@ npm install @aksparadise/otel-observability
 
 **Single import - Auto-detects and configures everything:**
 
-```typescript
-import { setup } from "@aksparadise/otel-observability/setup";
+```bash
+# 1. Install package
+npm install @aksparadise/otel-observability
 
-// Auto-detects framework and configures optimal defaults
-setup();
+# 2. Add .env file (required for OTel output)
+OTEL_ENABLED=true
+OTEL_BACKEND=signoz
+OTEL_SERVICE_NAME=my-app
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+```typescript
+// 3. Load .env FIRST - before any OTel imports
+import * as dotenv from "dotenv";
+import * as dotenvExpand from "dotenv-expand";
+
+const myEnv = dotenv.config();
+dotenvExpand.expand(myEnv);
+
+// 4. Auto-setup everything
+import { setup } from "@aksparadise/otel-observability/setup";
+const observability = setup(); // Auto-detects framework and reads .env automatically
 ```
 
 **That's it!** The `setup()` function automatically:
 
 - 🔍 **Detects your framework** (NestJS, Express, Next.js, or vanilla)
-- 📝 **Configures logger** with optimal defaults
+- 📝 **Reads .env variables** to enable OTel output
 - 🛡️ **Sets up global error handling**
 - 🎯 **Enables console monkeypatching** for complete log capture
+
+**⚠️ Important:** The `.env` file is still required for OTel output configuration. The setup function automatically reads these variables, so no manual configuration is needed.
 
 ### Prerequisites
 

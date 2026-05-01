@@ -17,6 +17,24 @@ import { configureLogger } from "./logger.js";
 import { setupGlobalErrorHandler } from "./errorHandler.js";
 import { NestJSLogger } from "./nestjs-logger.js";
 
+// Auto-initialize OTel SDK if enabled
+const initializeOtel = async () => {
+    if (process.env.OTEL_ENABLED === "true") {
+        try {
+            // Dynamic import to initialize OTel SDK
+            await import("./otel.js");
+            return true;
+        } catch (error) {
+            console.warn(
+                "[OTel] OTel SDK initialization failed:",
+                error.message,
+            );
+            return false;
+        }
+    }
+    return false;
+};
+
 /**
  * Auto-detect and configure complete observability setup
  *
@@ -39,17 +57,26 @@ import { NestJSLogger } from "./nestjs-logger.js";
  *   framework: 'nestjs'
  * });
  */
-export const setup = (options = {}) => {
+export const setup = async (options = {}) => {
+    // Auto-detect configuration from environment variables
+    const otelEnabled = process.env.OTEL_ENABLED === "true";
+
     const {
         autoDetect = true,
         enableConsoleOutput = true,
-        enableOtelOutput = true,
+        enableOtelOutput = otelEnabled, // Auto-enable from .env
         enableMonkeypatch = true,
         consoleColors = true,
         showMetadataInProduction = false,
         framework = null,
         ...loggerOptions
     } = options;
+
+    // 0️⃣ Initialize OTel SDK first (critical for SigNoz integration)
+    let otelSdkInitialized = false;
+    if (enableOtelOutput && otelEnabled) {
+        otelSdkInitialized = await initializeOtel();
+    }
 
     // 1️⃣ Configure Logger with optimal defaults
     configureLogger({
@@ -76,10 +103,10 @@ export const setup = (options = {}) => {
                 return {
                     framework: "nestjs",
                     logger: new NestJSLogger(),
+                    otelSdkInitialized,
                     setupNestJS: (app) => {
-                        if (app && typeof app.useLogger === "function") {
-                            app.useLogger(new NestJSLogger());
-                        }
+                        app.useLogger(new NestJSLogger());
+                        return app;
                     },
                 };
 
