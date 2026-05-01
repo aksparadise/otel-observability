@@ -16,6 +16,7 @@ Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with 
 - **Identity Injection** for traces
 - **Global Error Handling**: Captures all errors even without explicit logger usage
 - **Framework Agnostic**: Works with Express, GraphQL, Next.js, or vanilla Node.js
+- **NestJS Integration**: Built-in NestJS logger for complete framework observability
 - **Vulnerability Self-Check**: Automated security scanning
 - **Graceful Shutdown**: Proper flushing of telemetry data
 
@@ -121,6 +122,74 @@ const result = await withSpan("user.create", async (span) => {
 const counter = createCounter("http_requests_total");
 counter.add(1, { method: "GET" });
 ```
+
+## NestJS Integration
+
+### Why NestJS Logger is Needed
+
+NestJS has its own internal logging system that **bypasses standard console methods**. Without proper integration, you'll miss critical NestJS logs in SigNoz:
+
+- ❌ **Route mappings** - `Mapped {/auth/login, POST} route`
+- ❌ **Application events** - `Nest application successfully started`
+- ❌ **Controller logs** - All framework-level logging
+- ❌ **Error handling** - NestJS-specific error events
+
+### NestJS Setup (Required for Complete Observability)
+
+**Add to your main.ts:**
+
+```typescript
+import "@aksparadise/otel-observability/otel";
+import "@aksparadise/otel-observability/logger";
+import { setupGlobalErrorHandler } from "@aksparadise/otel-observability/error-handler";
+import { configureLogger } from "@aksparadise/otel-observability/logger";
+import { NestJSLogger } from "@aksparadise/otel-observability/nestjs-logger";
+
+// Configure logger to capture all console output
+configureLogger({
+    enableConsoleOutput: true,
+    enableOtelOutput: true,
+    enableMonkeypatch: true, // Captures all console.log calls
+    consoleColors: true,
+    showMetadataInProduction: false,
+});
+
+setupGlobalErrorHandler();
+
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+
+async function bootstrap() {
+    const app = await NestFactory.create(AppModule, {
+        logger: new NestJSLogger(), // Routes ALL NestJS logs through OTel
+    });
+
+    await app.listen(3000);
+}
+bootstrap();
+```
+
+### What You Get with NestJS Integration
+
+✅ **Complete NestJS Observability:**
+
+- Route mapping logs: `ℹ️ [INFO] Mapped {/auth/login, POST} route`
+- Application lifecycle: `ℹ️ [INFO] Nest application successfully started`
+- Controller events: All NestJS framework logs
+- Error handling: NestJS-specific errors with context
+- WebSocket events: Gateway connection/disconnection logs
+
+✅ **Structured Context:**
+
+- `{ context: 'RoutesResolver' }`
+- `{ context: 'NestApplication' }`
+- `{ context: 'ChatGateway' }`
+
+✅ **Automatic Trace Correlation:**
+
+- All NestJS logs linked to active traces
+- Proper span context propagation
+- Request-level correlation
 
 ## Backend Configuration
 
@@ -326,6 +395,33 @@ autoUpdateSafePackages();
 ```
 
 ## Framework-Specific Setup
+
+### NestJS
+
+```typescript
+import "@aksparadise/otel-observability/otel";
+import "@aksparadise/otel-observability/logger";
+import { NestJSLogger } from "@aksparadise/otel-observability/nestjs-logger";
+import { configureLogger } from "@aksparadise/otel-observability/logger";
+import { NestFactory } from "@nestjs/core";
+import { AppModule } from "./app.module";
+
+// Configure logger to capture all console output
+configureLogger({
+    enableConsoleOutput: true,
+    enableOtelOutput: true,
+    enableMonkeypatch: true,
+    consoleColors: true,
+});
+
+async function bootstrap() {
+    const app = await NestFactory.create(AppModule, {
+        logger: new NestJSLogger(), // Routes ALL NestJS logs through OTel
+    });
+    await app.listen(3000);
+}
+bootstrap();
+```
 
 ### Express
 

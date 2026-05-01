@@ -23,6 +23,7 @@ const files = [
     "sanitizer.js",
     "errorHandler.js",
     "security.js",
+    "nestjs-logger.js",
 ];
 
 await Promise.all(
