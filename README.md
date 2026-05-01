@@ -28,9 +28,9 @@ npm install @aksparadise/otel-observability
 
 ## Quick Start
 
-### 🚀 Zero-Configuration Setup (Recommended)
+### 🚀 Quick Start with Node.js
 
-**Single import - Auto-detects and configures everything:**
+**Perfect for Express.js, vanilla Node.js, scripts, and CLI tools:**
 
 ```bash
 # 1. Install package
@@ -45,43 +45,270 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 ```typescript
 // 3. Load .env FIRST - before any OTel imports
-import * as dotenv from "dotenv";
-import * as dotenvExpand from "dotenv-expand";
-
-const myEnv = dotenv.config();
-dotenvExpand.expand(myEnv);
+import "dotenv/config";
 
 // 4. Auto-setup everything
 import { setup } from "@aksparadise/otel-observability/setup";
-const observability = await setup(); // Auto-detects framework and reads .env automatically
+import express from "express";
 
-// 5. Use the observability object in your application
-// Example for NestJS:
+async function startServer() {
+    // Initialize OTel and setup observability FIRST
+    const observability = await setup(); // Auto-detects framework and reads .env automatically
+
+    const app = express();
+
+    // 5. Add tracing middleware (REQUIRED for Express)
+    // Note: Use the actual middleware from the package, not the stub from setup()
+    import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
+    app.use(otelContextMiddleware);
+
+    // Your routes
+    app.get("/", (req, res) => {
+        res.json({ message: "Hello World!" });
+    });
+
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
+
+startServer();
+```
+
+**That's it!** Your Express app now automatically sends traces, metrics, and logs to SigNoz.
+
+**✅ Success Indicators:**
+
+When everything is working correctly, you should see these messages in your console:
+
+```
+[OTel] Initializing with backend: SIGNOZ, sampling ratio: 1
+[OTel] ✅ SDK started — exporting to http://localhost:4318
+```
+
+These messages confirm that OTel is properly initialized and sending data to SigNoz.
+
+### 🪺 Quick Start with NestJS
+
+**Perfect for NestJS applications with framework-specific logging:**
+
+```bash
+# 1. Install package
+npm install @aksparadise/otel-observability
+
+# 2. Add .env file (required for OTel output)
+OTEL_ENABLED=true
+OTEL_BACKEND=signoz
+OTEL_SERVICE_NAME=my-nestjs-app
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+```typescript
+// 3. Load .env FIRST - before any OTel imports
+
+// Option A: Basic dotenv (most common)
+import "dotenv/config";
+
+// Option B: Advanced dotenv with variable expansion (optional)
+// import * as dotenv from "dotenv";
+// import * as dotenvExpand from "dotenv-expand";
+// const myEnv = dotenv.config();
+// dotenvExpand.expand(myEnv);
+
+// 4. Auto-setup everything
+import { setup } from "@aksparadise/otel-observability/setup";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
-const app = await NestFactory.create(AppModule, {
-    logger: observability.logger || ["log", "error", "warn"], // Use configured logger
-});
+async function bootstrap() {
+    // Initialize OTel and setup observability FIRST
+    const observability = await setup(); // Auto-detects NestJS and returns logger
 
-// Example for Express:
-app.use(observability.middleware); // Add tracing middleware
+    const app = await NestFactory.create(AppModule, {
+        logger: observability.logger, // Auto-configured NestJS logger
+    });
+
+    // ... your app setup
+    await app.listen(3000);
+}
+
+bootstrap();
 ```
 
-**That's it!** The `setup()` function automatically:
+**That's it!** Your NestJS app now automatically sends framework logs, traces, and metrics to SigNoz.
+
+**✅ Success Indicators:**
+
+When everything is working correctly, you should see these messages in your console:
+
+```
+[OTel] Initializing with backend: SIGNOZ, sampling ratio: 1
+[OTel] ✅ SDK started — exporting to http://localhost:4318
+```
+
+These messages confirm that OTel is properly initialized and sending data to SigNoz.
+
+### 🚀 Quick Start with Next.js
+
+**Perfect for Next.js applications with automatic instrumentation:**
+
+```bash
+# 1. Install package
+npm install @aksparadise/otel-observability
+
+# 2. Add .env file (required for OTel output)
+OTEL_ENABLED=true
+OTEL_BACKEND=signoz
+OTEL_SERVICE_NAME=my-nextjs-app
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+```
+
+```typescript
+// 3. Create or update pages/_app.tsx
+import { setup } from "@aksparadise/otel-observability/setup";
+
+// Load .env FIRST - before any OTel imports
+
+// Option A: Basic dotenv (most common)
+import "dotenv/config";
+
+// Option B: Advanced dotenv with variable expansion (optional)
+// import * as dotenv from "dotenv";
+// import * as dotenvExpand from "dotenv-expand";
+// const myEnv = dotenv.config();
+// dotenvExpand.expand(myEnv);
+
+// Initialize OTel and setup observability
+const observability = await setup(); // Auto-detects Next.js and returns middleware
+
+function MyApp({ Component, pageProps }: any) {
+  return <Component {...pageProps} />;
+}
+
+export default MyApp;
+```
+
+```typescript
+// 4. Create or update pages/_middleware.ts
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
+
+export async function middleware(request: NextRequest) {
+    // Add OTel tracing for Next.js pages and API routes
+    // Note: Initialize OTel in _app.tsx, middleware just adds context
+    return otelContextMiddleware(request, NextResponse.next());
+}
+```
+
+**That's it!** Your Next.js app now automatically sends page views, API calls, and client-side metrics to SigNoz.
+
+**✅ Success Indicators:**
+
+When everything is working correctly, you should see these messages in your console:
+
+```
+[OTel] Initializing with backend: SIGNOZ, sampling ratio: 1
+[OTel] ✅ SDK started — exporting to http://localhost:4318
+```
+
+These messages confirm that OTel is properly initialized and sending data to SigNoz.
+
+## How It Works
+
+The `setup()` function automatically:
 
 - 🔍 **Detects your framework** (NestJS, Express, Next.js, or vanilla)
 - 📝 **Reads .env variables** to enable OTel output
 - 🛡️ **Sets up global error handling**
 - 🎯 **Enables console monkeypatching** for complete log capture
 
-**⚠️ Important:** You **must** use the `observability` object in your application for proper integration. The setup function returns:
+**⚠️ Important:** You **must** use the actual middleware from the package for HTTP tracing. The `setup()` function returns:
 
-- `observability.logger` - Framework-specific logger with trace context
-- `observability.middleware` - HTTP tracing middleware (for Express/Next.js)
+- `observability.logger` - Framework-specific logger with trace context (NestJS only)
 - `observability.framework` - Detected framework type
+- **Note:** Use `otelContextMiddleware` from the package for Express/Next.js tracing
 
 **⚠️ Important:** The `.env` file is still required for OTel output configuration. The setup function automatically reads these variables, so no manual configuration is needed.
+
+## Production Configuration
+
+### 🚀 Production-Ready Setup
+
+```env
+# Production environment variables
+OTEL_ENABLED=true
+OTEL_BACKEND=signoz
+OTEL_SERVICE_NAME=my-production-app
+OTEL_SERVICE_VERSION=1.2.3
+OTEL_EXPORTER_OTLP_ENDPOINT=https://your-signoz-server:4318
+OTEL_TRACE_SAMPLING_RATIO=0.1  # 10% sampling in production
+OTEL_ENVIRONMENT=production
+```
+
+```typescript
+// Production setup with error handling
+import "dotenv/config";
+import { setup } from "@aksparadise/otel-observability/setup";
+import express from "express";
+import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
+
+async function startServer() {
+    try {
+        // Initialize observability with production settings
+        const observability = await setup({
+            enableConsoleOutput: false, // Disable console logs in production
+            enableOtelOutput: true,
+            enableMonkeypatch: true,
+            consoleColors: false, // No colors in production
+        });
+
+        const app = express();
+
+        // Add OTel tracing middleware
+        app.use(otelContextMiddleware);
+
+        // Add health check endpoint
+        app.get("/health", (req, res) => {
+            res.json({ status: "healthy", timestamp: Date.now() });
+        });
+
+        const port = process.env.PORT || 3000;
+        app.listen(port, () => {
+            console.log(`Production server running on port ${port}`);
+        });
+    } catch (error) {
+        console.error("Failed to start server:", error);
+        process.exit(1);
+    }
+}
+
+startServer();
+```
+
+### 🔧 Environment-Specific Configurations
+
+**Development (.env.development):**
+
+```env
+OTEL_TRACE_SAMPLING_RATIO=1.0  # Full sampling in dev
+OTEL_ENVIRONMENT=development
+```
+
+**Staging (.env.staging):**
+
+```env
+OTEL_TRACE_SAMPLING_RATIO=0.5  # 50% sampling in staging
+OTEL_ENVIRONMENT=staging
+```
+
+**Production (.env.production):**
+
+```env
+OTEL_TRACE_SAMPLING_RATIO=0.1  # 10% sampling in production
+OTEL_ENVIRONMENT=production
+```
 
 ### Prerequisites
 
@@ -92,42 +319,66 @@ app.use(observability.middleware); // Add tracing middleware
 
 This package **only sends data** - you need to run SigNoz or Grafana to receive and visualize it.
 
-### Manual Setup (Advanced)
+## Troubleshooting
 
-**1. Install:**
+### 🔧 Common Issues & Solutions
+
+#### **Issue: No logs appearing in SigNoz**
 
 ```bash
-npm install @aksparadise/otel-observability
+# Check if OTel is enabled
+echo $OTEL_ENABLED  # Should be "true"
+
+# Verify SigNoz is running
+curl http://localhost:4318/v1/traces
+
+# Check your .env file is loaded
+node -e "console.log('OTEL_ENABLED:', process.env.OTEL_ENABLED)"
 ```
 
-**2. Add .env file:**
+#### **Issue: "require is not defined" error**
+
+```typescript
+// ✅ Correct: Load .env BEFORE OTel imports
+import "dotenv/config";
+import { setup } from "@aksparadise/otel-observability/setup";
+
+// ❌ Incorrect: OTel imports before .env
+import { setup } from "@aksparadise/otel-observability/setup";
+import "dotenv/config";
+```
+
+#### **Issue: Framework not detected**
+
+```typescript
+// Force framework detection
+const observability = await setup({
+    framework: "express", // or "nestjs", "nextjs", "vanilla"
+});
+```
+
+#### **Issue: High memory usage in production**
 
 ```env
-OTEL_ENABLED=true
-OTEL_BACKEND=signoz
-OTEL_SERVICE_NAME=my-app
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+# Reduce sampling ratio
+OTEL_TRACE_SAMPLING_RATIO=0.1  # 10% instead of 100%
 ```
 
-**3. Add to top of your main file:**
+### 🚨 Error Messages & Solutions
 
-**IMPORTANT:** Load .env BEFORE OTel imports:
+| Error                            | Solution                                   |
+| -------------------------------- | ------------------------------------------ |
+| `Cannot find module './otel.js'` | Ensure you're using v1.1.7+                |
+| `ERR_PACKAGE_PATH_NOT_EXPORTED`  | Update to latest package version           |
+| `OTel SDK initialization failed` | Check .env variables and SigNoz connection |
+| `No backend configured`          | Set `OTEL_EXPORTER_OTLP_ENDPOINT` in .env  |
 
-```javascript
-// Load .env FIRST
-import "dotenv/config";
+### 📞 Getting Help
 
-// Then import OTel
-import "@aksparadise/otel-observability/otel";
-import "@aksparadise/otel-observability/logger";
-import { setupGlobalErrorHandler } from "@aksparadise/otel-observability/error-handler";
-
-setupGlobalErrorHandler();
-
-// Your app code starts here
-```
-
-**That's it!** Your app now automatically sends traces, metrics, and logs to your backend.
+1. **Check SigNoz UI:** http://localhost:3301
+2. **Verify .env variables:** All must be set correctly
+3. **Check package version:** `npm list @aksparadise/otel-observability`
+4. **Review logs:** Look for `[OTel]` messages in console
 
 ### Detailed Setup
 
