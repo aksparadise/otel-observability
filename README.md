@@ -276,6 +276,143 @@ bootstrap();
 - Proper span context propagation
 - Request-level correlation
 
+## Plain Node.js & Express Integration
+
+### 🚀 Express.js Setup (Recommended)
+
+**Single import - Auto-detects and configures everything:**
+
+```typescript
+// Load .env FIRST - before any OTel imports
+import * as dotenv from "dotenv";
+import * as dotenvExpand from "dotenv-expand";
+
+const myEnv = dotenv.config();
+dotenvExpand.expand(myEnv);
+
+// Auto-setup everything
+import { setup } from "@aksparadise/otel-observability/setup";
+import express from "express";
+
+async function startServer() {
+    // Initialize OTel and setup observability FIRST
+    const observability = await setup(); // Auto-detects Express and returns middleware
+
+    const app = express();
+
+    // Add tracing middleware (REQUIRED for proper HTTP tracing)
+    app.use(observability.middleware);
+
+    // Your routes
+    app.get("/", (req, res) => {
+        res.json({ message: "Hello World!" });
+    });
+
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server running on port ${port}`);
+    });
+}
+
+startServer();
+```
+
+### 🎯 Vanilla Node.js Setup
+
+**For scripts, CLI tools, or non-HTTP applications:**
+
+```typescript
+// Load .env FIRST - before any OTel imports
+import * as dotenv from "dotenv";
+import * as dotenvExpand from "dotenv-expand";
+
+const myEnv = dotenv.config();
+dotenvExpand.expand(myEnv);
+
+// Auto-setup everything
+import { setup } from "@aksparadise/otel-observability/setup";
+
+async function runApplication() {
+    // Initialize OTel and setup observability
+    const observability = await setup(); // Auto-detects vanilla Node.js
+
+    // Your application logic
+    console.log("Application started with OTel observability");
+
+    // Manual span creation (optional)
+    const { trace } = await import("@opentelemetry/api");
+    const tracer = trace.getTracer("my-app");
+
+    const span = tracer.startSpan("user.processing");
+    try {
+        // Your business logic here
+        await processUserData();
+        span.setStatus({ code: 1 }); // OK
+    } catch (error) {
+        span.setStatus({ code: 2, message: error.message }); // ERROR
+        throw error;
+    } finally {
+        span.end();
+    }
+}
+
+runApplication();
+```
+
+### 📊 What You Get with Express Integration
+
+✅ **Complete HTTP Observability:**
+
+- Request/response timing and status codes
+- HTTP method and URL path tracking
+- Request headers and query parameters
+- Error tracking with stack traces
+
+✅ **Automatic Middleware:**
+
+- Request ID injection
+- Trace context propagation
+- Structured logging with request context
+
+✅ **Console Capture:**
+
+- All `console.log` calls captured with trace context
+- Automatic correlation with HTTP requests
+- Structured log formatting
+
+### 🛠️ Advanced Node.js Usage
+
+**Manual instrumentation for custom logic:**
+
+```typescript
+import {
+    withSpan,
+    createCounter,
+    createHistogram,
+} from "@aksparadise/otel-observability";
+
+// Wrap functions with automatic tracing
+const result = await withSpan("database.query", async (span) => {
+    span.setAttribute("db.query", "SELECT * FROM users");
+    return await db.query("SELECT * FROM users");
+});
+
+// Create custom metrics
+const requestCounter = createCounter("http_requests_total");
+const responseTime = createHistogram("http_request_duration");
+
+// Use in your routes
+app.get("/api/users", async (req, res) => {
+    requestCounter.add(1, { method: "GET", route: "/api/users" });
+
+    const startTime = Date.now();
+    // ... your logic
+    responseTime.record(Date.now() - startTime, { route: "/api/users" });
+
+    res.json(users);
+});
+```
+
 ## Backend Configuration
 
 ### Using SigNoz (Default)
