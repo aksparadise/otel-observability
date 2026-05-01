@@ -25,10 +25,7 @@ const initializeOtel = async () => {
             await import("./otel.js");
             return true;
         } catch (error) {
-            console.warn(
-                "[OTel] OTel SDK initialization failed:",
-                error.message,
-            );
+            console.error("[OTel] OTel SDK initialization failed:", error);
             return false;
         }
     }
