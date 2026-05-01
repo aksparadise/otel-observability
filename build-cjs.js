@@ -47,6 +47,25 @@ await Promise.all(
             /require\("\.\/(.+?)\.js"\)/g,
             'require("./$1.cjs")',
         );
+
+        // Convert CommonJS require to ESM imports for specific modules
+        if (file === "otel.js") {
+            // Convert require("events") to import { EventEmitter } from "events"
+            content = content.replace(
+                /const EventEmitter = require\("events"\);/,
+                'import { EventEmitter } from "events";',
+            );
+        }
+
+        // Fix dynamic import paths for CommonJS compatibility
+        if (file === "setup.js") {
+            // Convert dynamic import("./otel.js") to import("./otel.cjs")
+            content = content.replace(
+                /await import\("\.\/otel\.js"\);/,
+                'await import("./otel.cjs");',
+            );
+        }
+
         fs.writeFileSync(destPath, content);
 
         console.log(`Built ${file} to dist/cjs/${file.replace(".js", ".cjs")}`);
