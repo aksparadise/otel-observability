@@ -6,6 +6,33 @@
     "main": "./dist/cjs/index.cjs",
     "module": "./dist/esm/index.mjs",
     "types": "./dist/index.d.ts",
+    "engines": {
+        "node": ">=18.0.0"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/aksparadise/otel-observability.git"
+    },
+    "bugs": {
+        "url": "https://github.com/aksparadise/otel-observability/issues"
+    },
+    "homepage": "https://github.com/aksparadise/otel-observability#readme",
+    "keywords": [
+        "opentelemetry",
+        "observability",
+        "tracing",
+        "metrics",
+        "logging",
+        "signoz",
+        "grafana",
+        "otel",
+        "monitoring",
+        "apm",
+        "nestjs",
+        "express",
+        "nextjs",
+        "aksparadise"
+    ],
     "files": [
         "dist/",
         "README.md",
@@ -129,31 +156,8 @@
         "security-check": "node src/security.js",
         "update-deps": "npm update"
     },
-    "keywords": [
-        "opentelemetry",
-        "otel",
-        "signoz",
-        "grafana",
-        "observability",
-        "tracing",
-        "metrics",
-        "logging",
-        "monitoring",
-        "apm",
-        "graphql",
-        "nextjs",
-        "express",
-        "security"
-    ],
     "author": "AksParadise",
     "license": "MIT",
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/aksparadise/otel-observability.git"
-    },
-    "engines": {
-        "node": ">=18.0.0"
-    },
     "dependencies": {
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/api-logs": "^0.216.0",
