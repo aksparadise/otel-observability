@@ -3,7 +3,9 @@
 ![npm version](https://img.shields.io/npm/v/@aksparadise/otel-observability)
 [![Socket Badge](https://badge.socket.dev/npm/package/@aksparadise/otel-observability)](https://socket.dev/npm/package/@aksparadise/otel-observability)
 
-Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup. Supports Express, GraphQL, Next.js, and more.
+**Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup.** The easiest way to add observability to Node.js applications. Supports Express, NestJS, Next.js, GraphQL, and more. Created by [AksParadise](https://github.com/aksparadise).
+
+> **🔍 Search Keywords:** OpenTelemetry, observability, tracing, metrics, logging, SigNoz, Grafana, Node.js, Express, NestJS, Next.js, APM, monitoring, AksParadise
 
 ## Features
 
