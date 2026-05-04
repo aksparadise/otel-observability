@@ -1,5 +1,12 @@
 # API Reference — @aksparadise/otel-observability
 
+## Which One Should I Use?
+
+- Use `setup()` for the normal path: reads `.env`, auto-detects framework, configures logging + error handling, and starts the OTel SDK when `OTEL_ENABLED=true`.
+- Use `initOtel(customConfig)` only when you need SDK-level control (sampling ratio, instrumentations, exporter endpoints, etc).
+
+Rule: if you call `initOtel(customConfig)`, set `OTEL_AUTO_START=false` so the auto-start on import does not apply defaults before your config.
+
 ## setup()
 
 ```typescript
@@ -15,7 +22,6 @@ const observability = await setup(options);
 | `enableOtelOutput` | `boolean` | from `.env` | Enable OTLP export |
 | `enableMonkeypatch` | `boolean` | `true` | Patch `console.*` to capture logs |
 | `consoleColors` | `boolean` | `true` | Colored console output |
-| `instrumentations` | `object` | defaults | Override per-instrumentation config |
 
 **Returns:** `{ framework, logger, middleware, otelSdkInitialized }`
 
@@ -26,6 +32,8 @@ const observability = await setup(options);
 ```javascript
 import { initOtel, shutdownOtel } from "@aksparadise/otel-observability/otel";
 
+// Optional: disable auto-start so your config is applied first
+// OTEL_AUTO_START=false
 const sdk = initOtel(config);
 await shutdownOtel(sdk);
 ```

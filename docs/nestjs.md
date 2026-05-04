@@ -100,6 +100,6 @@ bootstrap();
 ## ✅ Success Indicators
 
 ```
-[OTEL] Initializing with sampling ratio: 1
- [OTEL] ✅ SDK started — exporting to http://localhost:4318
+ [OTel] Initializing with backend: SIGNOZ, sampling ratio: 1
+ [OTel] ✅ SDK started — exporting to http://localhost:4318
 ```

@@ -51,13 +51,13 @@ _No manual context passing required._
 **You should see:**
 
 - ✅ One root HTTP span
-- ✅ Nested Database spans (Mongoose, Redis, SQL)
+- ✅ Nested Database spans (Mongoose, Redis, etc.)
 - ✅ Structured logs linked via `trace_id`
 
 **No manual SDK wiring or multi-file setup. No digging through OpenTelemetry docs.**
 
 - ✅ **HTTP request traces** with status codes and full paths
-- ✅ **Database queries** (Mongoose, Redis, SQL) without manual spans
+- ✅ **Database queries** (Mongoose, Redis, etc.) without manual spans
 - ✅ **Errors with stack traces** — even ones you didn't log
 
 > ⚠️ **Prerequisites:** You still need a running OTLP backend (SigNoz, Grafana Cloud, or any OTLP collector) and a configured `.env` file. This library handles the Node.js side—not the backend.
@@ -77,10 +77,10 @@ _No manual context passing required._
 
 Every service using `setup()` shares an identical auditable contract:
 
-- **Tracing:** OTLP (HTTP), W3C Trace Context, Parent-based sampling (default: 1.0).
-- **Metrics:** Periodic OTLP exporting, runtime metrics (CPU, memory, event loop).
+- **Tracing:** OTLP (HTTP), W3C Trace Context, ratio-based sampling (default: 1.0).
+- **Metrics:** Periodic OTLP exporting.
 - **Logging:** Structured JSON, automatic trace/span correlation, global error capture.
-- **Instrumentation:** HTTP, Express/NestJS/Next.js, Mongoose, Redis, GraphQL.
+- **Instrumentation:** HTTP, Express, GraphQL, Mongoose, ioredis (and whatever else your app loads that OpenTelemetry auto-instrumentations support).
 - **Security:** Default PII redaction (`password`, `token`, `apiKey`, etc.).
 
 > This creates a consistent, versioned observability baseline across all services.
@@ -99,7 +99,7 @@ _Trace captured after calling `await setup()` — no manual spans added_
 ### **Console Success Indicator:**
 
 ```
-[OTEL] ✅ SDK started — exporting to http://localhost:4318
+ [OTel] ✅ SDK started — exporting to http://localhost:4318
 ```
 
 ### **Dashboard Results:**
@@ -124,7 +124,7 @@ _Trace captured after calling `await setup()` — no manual spans added_
 - 🔌 **Backend Agnostic:** SigNoz, Grafana Cloud, or any OTLP-compatible backend.
 - 🕸️ **Automatic Instrumentation:** HTTP, Express, Mongoose, Redis, GraphQL — all traced out of the box.
 - 🚦 **Global Error Handling:** Captures uncaught exceptions automatically, even without an explicit logger.
-- 🚺 **Not locked in:** Drop down to raw `NodeSDK` options anytime via `setup({ instrumentations: { ... } })`.
+- 🚺 **Not locked in:** Drop down to raw `NodeSDK` options anytime via `initOtel({ instrumentations: { ... } })` (see below) or use OpenTelemetry directly.
 
 ## ⚡ Before vs After
 
@@ -232,7 +232,7 @@ This library is designed specifically to be pinned and shared as a core dependen
 - **Semantic Versioning:** Breaking changes occur only in major versions.
 - **Safe Defaults:** Minor/patch updates do not change the shape or schema of your telemetry.
 - **Backward Compatibility:** Existing traces and exporters continue working — updates focus on adding new auto-instrumentations or improving performance.
-- **No Side Effects:** Beyond standard OTel initialization, the library has zero runtime side effects.
+- **No Hidden Processes:** No separate collector or agent is started. When you call `setup()` it configures logging/error handling and (optionally) starts the OTel SDK.
 
 **Recommended for teams:** Pin an exact version across all services and upgrade intentionally, treating this as a core infrastructure dependency.
 
@@ -255,7 +255,7 @@ Before digging into the code, check these first:
 If your OTLP endpoint is incorrect or unreachable:
 
 - No traces will appear in your backend.
-- You will see this in your console: `[OTEL] Exporter failed to send spans (ECONNREFUSED)`.
+- You will see this in your console: `[OTel] Exporter failed to send spans (ECONNREFUSED)`.
 
 **Fix:**
 
@@ -266,7 +266,7 @@ If your OTLP endpoint is incorrect or unreachable:
 ### Other Troubleshooting:
 
 - **Enable debug logs** with `OTEL_LOG_LEVEL=debug` in your `.env`.
-- **Disable specific instrumentations** via `setup({ instrumentations: { ... } })`.
+- **Disable specific instrumentations** via `initOtel({ instrumentations: { ... } })` with `OTEL_AUTO_START=false`.
 - **Drop down to raw OpenTelemetry** at any time.
 
 _No lock-in — this is a thin wrapper, not a black box._
@@ -314,8 +314,8 @@ startServer();
 **✅ You'll see this in your console:**
 
 ```
-[OTEL] Initializing with sampling ratio: 1
- [OTEL] ✅ SDK started — exporting to http://localhost:4318
+ [OTel] Initializing with backend: SIGNOZ, sampling ratio: 1
+ [OTel] ✅ SDK started — exporting to http://localhost:4318
 ```
 
 > 📖 **NestJS?** → [docs/nestjs.md](./docs/nestjs.md)  
@@ -380,6 +380,12 @@ your code  = business logic (unchanged)
 - Require direct, raw access to `NodeSDK` internals
 
 > **Not locked in.** This library is a configured wrapper _on top of_ the OpenTelemetry SDK — you can always drop down to raw OTEL config via the `setup()` options or bypass it entirely.
+
+### setup() vs initOtel() (don’t overthink it)
+
+- Use `setup()` for the normal path. If `OTEL_ENABLED=true`, it starts the SDK.
+- Use `initOtel(customConfig)` only when you need SDK-level control (sampling, instrumentations, exporter endpoints).
+- If you use `initOtel(customConfig)`, set `OTEL_AUTO_START=false` so your config is applied before the SDK starts.
 
 ## 🔭 What This Does NOT Hide
 

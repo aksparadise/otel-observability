@@ -311,7 +311,11 @@ try {
     // This prevents "MaxListenersExceededWarning" from OTel instrumentation
     EventEmitter.defaultMaxListeners = 20;
 
-    sdk = initOtel();
+    // Allow consumers (or setup()) to control SDK start explicitly.
+    // Default behavior remains auto-start on import.
+    if (process.env.OTEL_AUTO_START !== "false") {
+        sdk = initOtel();
+    }
 } catch (err) {
     process.stderr.write(`\n [OTel] Initialization error: ${err.message}\n`);
 }

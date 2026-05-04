@@ -129,9 +129,12 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 node app.js
 ### Disable Noisy Instrumentation
 
 ```ts
-await setup({
+import { initOtel } from "@aksparadise/otel-observability/otel";
+
+// Set OTEL_AUTO_START=false to ensure this config is applied.
+initOtel({
     instrumentations: {
-        "@opentelemetry/instrumentation-fs": { enabled: false }
-    }
+        "@opentelemetry/instrumentation-fs": { enabled: false },
+    },
 });
 ```

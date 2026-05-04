@@ -25,10 +25,11 @@ const require = createRequire(`${process.cwd()}/package.json`);
 const initializeOtel = async () => {
     if (process.env.OTEL_ENABLED === "true") {
         try {
-            // Dynamic import to initialize OTel SDK
-            // Use .js extension for Node.js module resolution (works for both .js and .mjs)
-            await import("./otel.js");
-            return true;
+            // Import the module and then explicitly call initOtel().
+            // This keeps setup() working even when OTEL_AUTO_START=false.
+            const { initOtel } = await import("./otel.js");
+            const sdk = initOtel();
+            return Boolean(sdk);
         } catch (error) {
             console.error("[OTel] OTel SDK initialization failed:", error);
             return false;
