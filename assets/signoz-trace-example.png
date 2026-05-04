@@ -1,0 +1,16 @@
+# Placeholder for SigNoz trace dashboard screenshot
+# This file should be replaced with an actual screenshot showing:
+# - A trace appearing in SigNoz after calling await setup()
+# - HTTP span with database sub-spans
+# - Structured logs correlated with trace IDs
+# - No manual spans required
+
+# To create this image:
+# 1. Set up a SigNoz instance
+# 2. Run the 30-second proof example
+# 3. Take a screenshot of the trace dashboard
+# 4. Replace this file with the actual PNG image
+
+# Image dimensions: 1200x800 recommended
+# Format: PNG
+# Content: Should show a complete trace with HTTP + DB spans
