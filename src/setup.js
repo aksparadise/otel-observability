@@ -9,7 +9,7 @@
 //    - Console monkeypatching for complete log capture
 //
 //  Usage:
-//    import { setup } from '@aksparadise/otel-observability/setup';
+//    import { setup } from '@aksparadise/otel-observability';
 //    setup(); // Auto-detects and configures everything
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -50,7 +50,7 @@ const initializeOtel = async () => {
  *
  * @example
  * // Simple auto-setup
- * import { setup } from '@aksparadise/otel-observability/setup';
+ * import { setup } from '@aksparadise/otel-observability';
  * setup();
  *
  * // With custom options

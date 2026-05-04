@@ -2,16 +2,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 //  Main Entry Point — @aksparadise/otel-observability
 //
-//  This is the main entry point that exports all public APIs.
-//  Import this file to get access to all plugin functionality.
+//  This root entry point is intentionally side-effect safe.
+//  It does not auto-start OpenTelemetry; call setup() or import ./otel for that.
 //
 //  Quick Start:
 //    import '@aksparadise/otel-observability/otel';
 //    import { logger, withSpan, createCounter } from '@aksparadise/otel-observability';
 // ─────────────────────────────────────────────────────────────────────────────
 
-// OTel SDK initialization (auto-runs on import)
-export { initOtel, shutdownOtel } from "./otel.js";
+// Setup helper
+export { setup, setupNestJS, setupExpress, setupNextJS } from "./setup.js";
 
 // Tracer helpers
 export {
@@ -66,8 +66,8 @@ export {
 // Security
 export { runSecurityCheck, autoUpdateSafePackages } from "./security.js";
 
-// Re-export default for convenience
-export { default as otel } from "./otel.js";
+// Re-export defaults for convenience
+export { default as setupDefault } from "./setup.js";
 export { default as tracer } from "./tracer.js";
 export { default as metrics } from "./metrics.js";
 export { default as loggerDefault } from "./logger.js";

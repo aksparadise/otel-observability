@@ -46,12 +46,10 @@ GRAFANA_API_KEY=your-api-key
 // Load .env FIRST
 import "dotenv/config";
 
-// Then import OTel
-import "@aksparadise/otel-observability/otel";
-import "@aksparadise/otel-observability/logger";
-import { setupGlobalErrorHandler } from "@aksparadise/otel-observability/error-handler";
+// Then initialize observability
+import { setup } from "@aksparadise/otel-observability";
 
-setupGlobalErrorHandler();
+await setup();
 
 // Your app code starts here
 ```

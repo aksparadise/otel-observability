@@ -1,6 +1,6 @@
 {
     "name": "@aksparadise/otel-observability",
-    "version": "1.1.11",
+    "version": "1.1.12",
     "description": "Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup. Supports Express, GraphQL, Next.js, and more.",
     "type": "module",
     "main": "./dist/cjs/index.cjs",
@@ -73,6 +73,46 @@
             "types": "./dist/context.d.ts",
             "import": "./dist/esm/context.mjs",
             "require": "./dist/cjs/context.cjs"
+        }
+    },
+    "typesVersions": {
+        "*": {
+            "otel": [
+                "dist/otel.d.ts"
+            ],
+            "tracer": [
+                "dist/tracer.d.ts"
+            ],
+            "metrics": [
+                "dist/metrics.d.ts"
+            ],
+            "logger": [
+                "dist/logger.d.ts"
+            ],
+            "middleware": [
+                "dist/middleware.d.ts"
+            ],
+            "sanitizer": [
+                "dist/sanitizer.d.ts"
+            ],
+            "error-handler": [
+                "dist/error-handler.d.ts"
+            ],
+            "security": [
+                "dist/security.d.ts"
+            ],
+            "nestjs-logger": [
+                "dist/nestjs-logger.d.ts"
+            ],
+            "setup": [
+                "dist/setup.d.ts"
+            ],
+            "context": [
+                "dist/context.d.ts"
+            ],
+            "*": [
+                "dist/index.d.ts"
+            ]
         }
     },
     "scripts": {

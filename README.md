@@ -48,7 +48,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 import "dotenv/config";
 
 // 4. Import all required modules at the top
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
 import express from "express";
 
@@ -119,9 +119,9 @@ app.use(otelContextMiddleware);
 
 ### **When to Use Each:**
 
-| Component               | Purpose                   | When to Use                                        |
-| ----------------------- | ------------------------- | -------------------------------------------------- |
-| `setup()`               | Global OTel configuration | **Always** - first thing in your app               |
+| Component               | Purpose                   | When to Use                                                   |
+| ----------------------- | ------------------------- | ------------------------------------------------------------- |
+| `setup()`               | Global OTel configuration | **Always** - first thing in your app                          |
 | `otelContextMiddleware` | Request identity context  | **Optional** - for web apps that want user/tenant correlation |
 
 ### **Complete Flow:**
@@ -162,7 +162,7 @@ import "dotenv/config";
 // dotenvExpand.expand(myEnv);
 
 // 4. Auto-setup everything
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
 
@@ -179,6 +179,15 @@ async function bootstrap() {
 }
 
 bootstrap();
+```
+
+**CommonJS / older NestJS TypeScript fallback:**
+
+Some NestJS projects still use `"module": "commonjs"` with older TypeScript module resolution. If TypeScript cannot resolve package subpath exports, use the root import above first. If your project still complains, use this runtime-safe fallback:
+
+```typescript
+import "dotenv/config";
+const { setup } = require("@aksparadise/otel-observability");
 ```
 
 **That's it!** Your NestJS app now automatically sends framework logs, traces, and metrics to SigNoz.
@@ -218,11 +227,15 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 
 ```typescript
 // 3. Create instrumentation.ts in your project root, or inside src/
+// Load .env FIRST - before any OTel imports
+import "dotenv/config";
+
+// Import all required modules at the top
+import { setup } from "@aksparadise/otel-observability";
+
 // Next.js calls register() once when a server instance starts.
 export async function register() {
     if (process.env.NEXT_RUNTIME === "nodejs") {
-        await import("dotenv/config");
-        const { setup } = await import("@aksparadise/otel-observability/setup");
         await setup({ framework: "nextjs" });
     }
 }
@@ -315,7 +328,7 @@ OTEL_ENVIRONMENT=production
 ```typescript
 // Production setup with error handling
 import "dotenv/config";
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 import express from "express";
 import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
 
@@ -406,10 +419,10 @@ node -e "console.log('OTEL_ENABLED:', process.env.OTEL_ENABLED)"
 ```typescript
 // ✅ Correct: Load .env BEFORE OTel imports
 import "dotenv/config";
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 
 // ❌ Incorrect: OTel imports before .env
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 import "dotenv/config";
 ```
 
@@ -518,7 +531,7 @@ const myEnv = dotenv.config();
 dotenvExpand.expand(myEnv);
 
 // Auto-setup everything
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
@@ -607,7 +620,7 @@ const myEnv = dotenv.config();
 dotenvExpand.expand(myEnv);
 
 // Auto-setup everything
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 import express from "express";
 
 async function startServer() {
@@ -646,7 +659,7 @@ const myEnv = dotenv.config();
 dotenvExpand.expand(myEnv);
 
 // Auto-setup everything
-import { setup } from "@aksparadise/otel-observability/setup";
+import { setup } from "@aksparadise/otel-observability";
 
 async function runApplication() {
     // Initialize OTel and setup observability
@@ -992,7 +1005,7 @@ const server = new ApolloServer({
 export async function register() {
     if (process.env.NEXT_RUNTIME === "nodejs") {
         await import("dotenv/config");
-        const { setup } = await import("@aksparadise/otel-observability/setup");
+        const { setup } = await import("@aksparadise/otel-observability");
         await setup({ framework: "nextjs" });
     }
 }
