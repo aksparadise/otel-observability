@@ -19,5 +19,3 @@ dist
 *.d.ts
 !src/context.d.ts
 *.tgz
-DEVELOPMENT_LOG.md
-TEAM_SUMMARY.md

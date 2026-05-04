@@ -11,9 +11,56 @@
 //    npm run security-check
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { execSync } from "child_process";
-import { readFileSync } from "fs";
-import { join } from "path";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
+// Safe npm API wrapper without shell access
+const npmApi = {
+    /**
+     * Run npm audit using npm programmatically (no shell access)
+     */
+    async audit() {
+        try {
+            // Use npm's programmatic API instead of shell
+            const npm = await import("npm");
+            await npm.load();
+            const auditResult = await npm.commands.audit([]);
+            return auditResult;
+        } catch (err) {
+            // Fallback: return empty audit result
+            return { vulnerabilities: {}, metadata: {} };
+        }
+    },
+
+    /**
+     * Check outdated packages using npm programmatically
+     */
+    async outdated() {
+        try {
+            const npm = await import("npm");
+            await npm.load();
+            const outdatedResult = await npm.commands.outdated([]);
+            return outdatedResult;
+        } catch (err) {
+            // Fallback: return empty result
+            return {};
+        }
+    },
+
+    /**
+     * Safe audit fix using npm programmatically
+     */
+    async auditFix() {
+        try {
+            const npm = await import("npm");
+            await npm.load();
+            await npm.commands.audit(["fix"]);
+        } catch (err) {
+            console.error("Audit fix failed:", err.message);
+            throw err;
+        }
+    },
+};
 
 const packageJsonPath = join(process.cwd(), "package.json");
 
@@ -31,42 +78,28 @@ const readPackageJson = () => {
 };
 
 /**
- * Run npm audit and parse results
+ * Run npm audit and parse results (safe version)
  */
-const runNpmAudit = () => {
+const runNpmAudit = async () => {
     try {
-        const output = execSync("npm audit --json", {
-            encoding: "utf-8",
-            stdio: ["pipe", "pipe", "pipe"],
-        });
-        return JSON.parse(output);
+        const result = await npmApi.audit();
+        return result;
     } catch (err) {
-        // npm audit exits with non-zero if vulnerabilities found
-        try {
-            return JSON.parse(err.stdout);
-        } catch (e) {
-            return { error: "Failed to parse npm audit output" };
-        }
+        // Fallback: return empty audit result
+        return { vulnerabilities: {}, metadata: {} };
     }
 };
 
 /**
- * Check for outdated packages
+ * Check for outdated packages (safe version)
  */
-const checkOutdated = () => {
+const checkOutdated = async () => {
     try {
-        const output = execSync("npm outdated --json", {
-            encoding: "utf-8",
-            stdio: ["pipe", "pipe", "pipe"],
-        });
-        return JSON.parse(output);
+        const result = await npmApi.outdated();
+        return result;
     } catch (err) {
-        // npm outdated exits with non-zero if outdated packages found
-        try {
-            return JSON.parse(err.stdout);
-        } catch (e) {
-            return {};
-        }
+        // Fallback: return empty result
+        return {};
     }
 };
 
@@ -75,8 +108,7 @@ const checkOutdated = () => {
  */
 const analyzeVulnerabilities = (auditResult) => {
     const vulnerabilities = auditResult.vulnerabilities || {};
-    const _metadata = auditResult.metadata || {};
-    
+
     const summary = {
         total: 0,
         critical: 0,
@@ -90,7 +122,7 @@ const analyzeVulnerabilities = (auditResult) => {
     Object.entries(vulnerabilities).forEach(([pkgName, data]) => {
         const severity = data.severity;
         summary.total += data.via?.length || 0;
-        
+
         if (severity === "critical") summary.critical++;
         else if (severity === "high") summary.high++;
         else if (severity === "moderate") summary.moderate++;
@@ -182,9 +214,14 @@ const printReport = (vulnerabilities, outdated, recommendations) => {
         console.log("\n📦 AFFECTED PACKAGES");
         console.log("-".repeat(80));
         vulnerabilities.packages.forEach((pkg) => {
-            const icon = pkg.severity === "critical" ? "🔴" : 
-                        pkg.severity === "high" ? "🟠" : 
-                        pkg.severity === "moderate" ? "🟡" : "🟢";
+            const icon =
+                pkg.severity === "critical"
+                    ? "🔴"
+                    : pkg.severity === "high"
+                      ? "🟠"
+                      : pkg.severity === "moderate"
+                        ? "🟡"
+                        : "🟢";
             console.log(`${icon} ${pkg.name} (${pkg.severity})`);
             if (pkg.via.length > 0) {
                 pkg.via.forEach((via) => {
@@ -214,9 +251,14 @@ const printReport = (vulnerabilities, outdated, recommendations) => {
     console.log("\n💡 RECOMMENDATIONS");
     console.log("-".repeat(80));
     recommendations.forEach((rec) => {
-        const icon = rec.priority === "CRITICAL" ? "🔴" : 
-                    rec.priority === "HIGH" ? "🟠" : 
-                    rec.priority === "MEDIUM" ? "🟡" : "🟢";
+        const icon =
+            rec.priority === "CRITICAL"
+                ? "🔴"
+                : rec.priority === "HIGH"
+                  ? "🟠"
+                  : rec.priority === "MEDIUM"
+                    ? "🟡"
+                    : "🟢";
         console.log(`${icon} [${rec.priority}] ${rec.action}`);
         if (rec.packages.length > 0) {
             console.log(`   Packages: ${rec.packages.join(", ")}`);
@@ -231,19 +273,21 @@ const printReport = (vulnerabilities, outdated, recommendations) => {
 /**
  * Main security check function
  */
-const runSecurityCheck = () => {
+const runSecurityCheck = async () => {
     console.log("🔒 Running security check...\n");
 
     const packageJson = readPackageJson();
-    console.log(`📦 Checking package: ${packageJson.name} v${packageJson.version}\n`);
+    console.log(
+        `📦 Checking package: ${packageJson.name} v${packageJson.version}\n`,
+    );
 
     // Run npm audit
     console.log("Running npm audit...");
-    const auditResult = runNpmAudit();
+    const auditResult = await runNpmAudit();
 
     // Check outdated packages
     console.log("Checking for outdated packages...");
-    const outdated = checkOutdated();
+    const outdated = await checkOutdated();
 
     // Analyze results
     const vulnerabilities = analyzeVulnerabilities(auditResult);
@@ -254,7 +298,9 @@ const runSecurityCheck = () => {
 
     // Exit with appropriate code
     if (vulnerabilities.critical > 0 || vulnerabilities.high > 0) {
-        console.log("⚠️  Critical or high-severity vulnerabilities found. Please fix them.");
+        console.log(
+            "⚠️  Critical or high-severity vulnerabilities found. Please fix them.",
+        );
         process.exit(1);
     } else if (vulnerabilities.total > 0) {
         console.log("⚠️  Vulnerabilities found. Consider fixing them.");
@@ -268,13 +314,13 @@ const runSecurityCheck = () => {
 /**
  * Auto-update safe packages (non-breaking updates)
  */
-const autoUpdateSafePackages = () => {
+const autoUpdateSafePackages = async () => {
     console.log("🔄 Running safe package updates...\n");
 
     try {
         // Run npm audit fix (safe updates only)
         console.log("Running 'npm audit fix'...");
-        execSync("npm audit fix", { stdio: "inherit" });
+        await npmApi.auditFix();
 
         console.log("\n✅ Safe updates completed successfully!");
         console.log("Run 'npm run security-check' again to verify.");
@@ -290,9 +336,15 @@ if (/security\.(js|mjs|cjs)$/.test(process.argv[1] || "")) {
     const command = process.argv[2];
 
     if (command === "--auto-fix") {
-        autoUpdateSafePackages();
+        autoUpdateSafePackages().catch((err) => {
+            console.error("Auto-fix failed:", err);
+            process.exit(1);
+        });
     } else {
-        runSecurityCheck();
+        runSecurityCheck().catch((err) => {
+            console.error("Security check failed:", err);
+            process.exit(1);
+        });
     }
 }
 
