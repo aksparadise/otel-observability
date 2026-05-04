@@ -1,6 +1,6 @@
 {
     "name": "@aksparadise/otel-observability",
-    "version": "1.1.10",
+    "version": "1.1.11",
     "description": "Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup. Supports Express, GraphQL, Next.js, and more.",
     "type": "module",
     "main": "./dist/cjs/index.cjs",
