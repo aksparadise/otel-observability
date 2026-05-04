@@ -19,6 +19,7 @@ const files = [
     "tracer.js",
     "metrics.js",
     "logger.js",
+    "context.js",
     "middleware.js",
     "sanitizer.js",
     "errorHandler.js",

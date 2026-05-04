@@ -2,11 +2,11 @@
 
 ![npm version](https://img.shields.io/npm/v/@aksparadise/otel-observability)
 
-Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with zero-configuration setup. Supports Express, GraphQL, Next.js, and more.
+Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup. Supports Express, GraphQL, Next.js, and more.
 
 ## Features
 
-- **Zero Configuration** with sensible defaults
+- **Minimal Configuration** with sensible defaults
 - **Multi-Backend Support**: SigNoz, Grafana Cloud, or custom OTLP backends
 - **Automatic Instrumentation**: Express, HTTP, Mongoose, Redis, BullMQ, GraphQL
 - **Distributed Tracing** with context propagation
@@ -47,8 +47,9 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 // 3. Load .env FIRST - before any OTel imports
 import "dotenv/config";
 
-// 4. Auto-setup everything
+// 4. Import all required modules at the top
 import { setup } from "@aksparadise/otel-observability/setup";
+import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
 import express from "express";
 
 async function startServer() {
@@ -57,9 +58,9 @@ async function startServer() {
 
     const app = express();
 
-    // 5. Add tracing middleware (REQUIRED for Express)
-    // Note: Use the actual middleware from the package, not the stub from setup()
-    import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
+    // 5. Add request context middleware (OPTIONAL for Express)
+    // Auto-instrumentation creates HTTP spans; this middleware adds user/tenant context.
+    // Skip this line if you do not need request identity correlation.
     app.use(otelContextMiddleware);
 
     // Your routes
@@ -88,6 +89,50 @@ When everything is working correctly, you should see these messages in your cons
 ```
 
 These messages confirm that OTel is properly initialized and sending data to SigNoz.
+
+## 📚 Understanding setup() vs Middleware
+
+### **What `setup()` Does:**
+
+```typescript
+const observability = await setup();
+```
+
+- ✅ **Initializes** OpenTelemetry SDK
+- ✅ **Configures** global error handling
+- ✅ **Enables** console monkeypatching
+- ✅ **Detects** your framework
+- ✅ **Sets up** logging infrastructure
+- ❌ **Does NOT** attach authenticated user/tenant data to requests
+
+### **What `otelContextMiddleware` Does:**
+
+```typescript
+app.use(otelContextMiddleware);
+```
+
+- ✅ **Adds** user/tenant/request context to active HTTP spans
+- ✅ **Injects** user context into traces
+- ✅ **Correlates** logs with HTTP requests
+- ✅ **Captures** request metadata (IP, user agent, etc.)
+- ❌ **Does NOT** initialize OTel SDK
+
+### **When to Use Each:**
+
+| Component               | Purpose                   | When to Use                                        |
+| ----------------------- | ------------------------- | -------------------------------------------------- |
+| `setup()`               | Global OTel configuration | **Always** - first thing in your app               |
+| `otelContextMiddleware` | Request identity context  | **Optional** - for web apps that want user/tenant correlation |
+
+### **Complete Flow:**
+
+1. **`setup()`** → Initializes OTel infrastructure
+2. **`otelContextMiddleware`** → Adds request identity context (optional)
+3. **Your app** → Sends traces, logs, and metrics to SigNoz
+
+**With middleware:** You get HTTP spans with user/tenant context where available  
+**Without middleware:** You still get auto-instrumented HTTP spans, but no user/tenant context from requests  
+**Without setup():** Nothing works - OTel SDK not initialized
 
 ### 🪺 Quick Start with NestJS
 
@@ -149,6 +194,13 @@ When everything is working correctly, you should see these messages in your cons
 
 These messages confirm that OTel is properly initialized and sending data to SigNoz.
 
+**📋 NestJS Specific Notes:**
+
+- NestJS gets HTTP spans through OpenTelemetry Node auto-instrumentation
+- `observability.logger` routes all NestJS framework logs through OTel
+- No manual middleware needed for basic HTTP spans
+- For custom middleware, you can still use `otelContextMiddleware`
+
 ### 🚀 Quick Start with Next.js
 
 **Perfect for Next.js applications with automatic instrumentation:**
@@ -165,44 +217,36 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 ```
 
 ```typescript
-// 3. Create or update pages/_app.tsx
-import { setup } from "@aksparadise/otel-observability/setup";
-
-// Load .env FIRST - before any OTel imports
-
-// Option A: Basic dotenv (most common)
-import "dotenv/config";
-
-// Option B: Advanced dotenv with variable expansion (optional)
-// import * as dotenv from "dotenv";
-// import * as dotenvExpand from "dotenv-expand";
-// const myEnv = dotenv.config();
-// dotenvExpand.expand(myEnv);
-
-// Initialize OTel and setup observability
-const observability = await setup(); // Auto-detects Next.js and returns middleware
-
-function MyApp({ Component, pageProps }: any) {
-  return <Component {...pageProps} />;
+// 3. Create instrumentation.ts in your project root, or inside src/
+// Next.js calls register() once when a server instance starts.
+export async function register() {
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+        await import("dotenv/config");
+        const { setup } = await import("@aksparadise/otel-observability/setup");
+        await setup({ framework: "nextjs" });
+    }
 }
-
-export default MyApp;
 ```
 
 ```typescript
-// 4. Create or update pages/_middleware.ts
-import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
+// 4. Optional: create middleware.ts in your project root for request identity.
+// Next.js middleware runs before routes. Use it only for lightweight context.
+import { NextResponse, type NextRequest } from "next/server";
+import { setTraceUser } from "@aksparadise/otel-observability/tracer";
 
-export async function middleware(request: NextRequest) {
-    // Add OTel tracing for Next.js pages and API routes
-    // Note: Initialize OTel in _app.tsx, middleware just adds context
-    return otelContextMiddleware(request, NextResponse.next());
+export function middleware(request: NextRequest) {
+    const userId = request.headers.get("x-user-id");
+    const tenantId = request.headers.get("x-tenant-id") || undefined;
+
+    if (userId) {
+        setTraceUser(userId, tenantId);
+    }
+
+    return NextResponse.next();
 }
 ```
 
-**That's it!** Your Next.js app now automatically sends page views, API calls, and client-side metrics to SigNoz.
+**That's it!** Your Next.js server now sends server-side traces, logs, and metrics to SigNoz.
 
 **✅ Success Indicators:**
 
@@ -215,6 +259,13 @@ When everything is working correctly, you should see these messages in your cons
 
 These messages confirm that OTel is properly initialized and sending data to SigNoz.
 
+**📋 Next.js Specific Notes:**
+
+- Use `instrumentation.ts`, not `pages/_app.tsx`, for server instrumentation
+- Use root `middleware.ts`, not `pages/_middleware.ts`
+- This package handles server-side OTel. It does not automatically collect browser metrics.
+- Middleware is optional and should stay lightweight
+
 ## How It Works
 
 The `setup()` function automatically:
@@ -224,11 +275,25 @@ The `setup()` function automatically:
 - 🛡️ **Sets up global error handling**
 - 🎯 **Enables console monkeypatching** for complete log capture
 
-**⚠️ Important:** You **must** use the actual middleware from the package for HTTP tracing. The `setup()` function returns:
+**⚠️ Important:** The `setup()` function configures OpenTelemetry and auto-instrumentation. For user and tenant correlation on Express requests, add middleware manually:
 
 - `observability.logger` - Framework-specific logger with trace context (NestJS only)
 - `observability.framework` - Detected framework type
-- **Note:** Use `otelContextMiddleware` from the package for Express/Next.js tracing
+- **Optional:** Use `otelContextMiddleware` from the package for Express request identity correlation
+
+**Why manual middleware is useful:**
+
+- `setup()` initializes OTel SDK and global configuration
+- OTel auto-instrumentation creates the HTTP spans
+- `otelContextMiddleware` adds user, tenant, IP, and request ID attributes to the current request
+- Without middleware, traces still exist, but they will not include your app-specific identity context
+
+## What This Package Does Not Do
+
+- It does not run SigNoz, Grafana, or an OpenTelemetry Collector for you.
+- It does not create dashboards or alerts automatically.
+- It does not collect browser telemetry automatically.
+- It does not replace your backend-specific production sampling and retention strategy.
 
 **⚠️ Important:** The `.env` file is still required for OTel output configuration. The setup function automatically reads these variables, so no manual configuration is needed.
 
@@ -551,7 +616,7 @@ async function startServer() {
 
     const app = express();
 
-    // Add tracing middleware (REQUIRED for proper HTTP tracing)
+    // Add request identity middleware when you want user/tenant log correlation
     app.use(observability.middleware);
 
     // Your routes
@@ -922,17 +987,15 @@ const server = new ApolloServer({
 
 ### Next.js
 
-```javascript
-// lib/otel.js
-import "@aksparadise/otel-observability/otel";
-import "@aksparadise/otel-observability/logger";
-
-// next.config.js
-export default {
-    experimental: {
-        instrumentationHook: true,
-    },
-};
+```typescript
+// instrumentation.ts
+export async function register() {
+    if (process.env.NEXT_RUNTIME === "nodejs") {
+        await import("dotenv/config");
+        const { setup } = await import("@aksparadise/otel-observability/setup");
+        await setup({ framework: "nextjs" });
+    }
+}
 ```
 
 ## SigNoz vs Grafana Cloud

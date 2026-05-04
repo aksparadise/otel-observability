@@ -7,9 +7,17 @@ node_modules
 .codex
 package-lock.json
 test
+!test/
+test/*
+!test/integration/
+test/integration/*
+!test/integration/otlp-export.test.js
 DEPLOYMENT.md
 bdev11
 bdev11.pub
 dist
 *.d.ts
+!src/context.d.ts
 *.tgz
+DEVELOPMENT_LOG.md
+TEAM_SUMMARY.md

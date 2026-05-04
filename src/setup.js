@@ -16,6 +16,10 @@
 import { configureLogger } from "./logger.js";
 import { setupGlobalErrorHandler } from "./errorHandler.js";
 import { NestJSLogger } from "./nestjs-logger.js";
+import { otelContextMiddleware } from "./middleware.js";
+import { createRequire } from "node:module";
+
+const require = createRequire(`${process.cwd()}/package.json`);
 
 // Auto-initialize OTel SDK if enabled
 const initializeOtel = async () => {
@@ -111,19 +115,22 @@ export const setup = async (options = {}) => {
             case "express":
                 return {
                     framework: "express",
-                    middleware: getExpressMiddleware(),
+                    middleware: otelContextMiddleware,
+                    otelSdkInitialized,
                 };
 
             case "nextjs":
                 return {
                     framework: "nextjs",
-                    middleware: getNextJSMiddleware(),
+                    middleware: otelContextMiddleware,
+                    otelSdkInitialized,
                 };
 
             default:
                 return {
                     framework: "vanilla",
                     logger: null, // Use console monkeypatching
+                    otelSdkInitialized,
                 };
         }
     }
@@ -131,6 +138,7 @@ export const setup = async (options = {}) => {
     return {
         framework: "custom",
         logger: null,
+        otelSdkInitialized,
     };
 };
 
@@ -168,20 +176,26 @@ function checkPackageDependencies(packageJson) {
 function detectFramework() {
     try {
         // Check for NestJS
-        if (globalThis?.require?.resolve?.("@nestjs/core")) {
+        if (require.resolve("@nestjs/core")) {
             return "nestjs";
         }
+    } catch {}
 
+    try {
         // Check for Express
-        if (globalThis?.require?.resolve?.("express")) {
+        if (require.resolve("express")) {
             return "express";
         }
+    } catch {}
 
+    try {
         // Check for Next.js
-        if (globalThis?.require?.resolve?.("next")) {
+        if (require.resolve("next")) {
             return "nextjs";
         }
+    } catch {}
 
+    try {
         // Check package.json dependencies
         if (typeof process !== "undefined" && process.cwd()) {
             try {
@@ -205,26 +219,6 @@ function detectFramework() {
     } catch (e) {
         return "vanilla";
     }
-}
-
-/**
- * Get Express middleware for automatic logging
- */
-function getExpressMiddleware() {
-    return (req, res, next) => {
-        // Express-specific logging middleware
-        next();
-    };
-}
-
-/**
- * Get Next.js middleware for automatic logging
- */
-function getNextJSMiddleware() {
-    return (req, res, next) => {
-        // Next.js-specific logging middleware
-        next();
-    };
 }
 
 /**

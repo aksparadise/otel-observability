@@ -13,12 +13,9 @@
 
 import { execSync } from "child_process";
 import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { join } from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const packageJsonPath = join(__dirname, "..", "package.json");
+const packageJsonPath = join(process.cwd(), "package.json");
 
 /**
  * Read package.json
@@ -78,7 +75,7 @@ const checkOutdated = () => {
  */
 const analyzeVulnerabilities = (auditResult) => {
     const vulnerabilities = auditResult.vulnerabilities || {};
-    const metadata = auditResult.metadata || {};
+    const _metadata = auditResult.metadata || {};
     
     const summary = {
         total: 0,
@@ -289,7 +286,7 @@ const autoUpdateSafePackages = () => {
 };
 
 // Run security check if this file is executed directly
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+if (/security\.(js|mjs|cjs)$/.test(process.argv[1] || "")) {
     const command = process.argv[2];
 
     if (command === "--auto-fix") {

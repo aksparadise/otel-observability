@@ -1,66 +1,78 @@
 {
     "name": "@aksparadise/otel-observability",
     "version": "1.1.10",
-    "description": "Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with zero-configuration setup. Supports Express, GraphQL, Next.js, and more.",
+    "description": "Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup. Supports Express, GraphQL, Next.js, and more.",
     "type": "module",
     "main": "./dist/cjs/index.cjs",
     "module": "./dist/esm/index.mjs",
-    "types": "./index.d.ts",
+    "types": "./dist/index.d.ts",
+    "files": [
+        "dist/",
+        "README.md",
+        "QUICKSTART.md",
+        "examples/",
+        "package.json"
+    ],
     "exports": {
         ".": {
+            "types": "./dist/index.d.ts",
             "import": "./dist/esm/index.mjs",
-            "require": "./dist/cjs/index.cjs",
-            "types": "./index.d.ts"
+            "require": "./dist/cjs/index.cjs"
         },
         "./otel": {
+            "types": "./dist/otel.d.ts",
             "import": "./dist/esm/otel.mjs",
-            "require": "./dist/cjs/otel.cjs",
-            "types": "./otel.d.ts"
+            "require": "./dist/cjs/otel.cjs"
         },
         "./tracer": {
+            "types": "./dist/tracer.d.ts",
             "import": "./dist/esm/tracer.mjs",
-            "require": "./dist/cjs/tracer.cjs",
-            "types": "./tracer.d.ts"
+            "require": "./dist/cjs/tracer.cjs"
         },
         "./metrics": {
+            "types": "./dist/metrics.d.ts",
             "import": "./dist/esm/metrics.mjs",
-            "require": "./dist/cjs/metrics.cjs",
-            "types": "./metrics.d.ts"
+            "require": "./dist/cjs/metrics.cjs"
         },
         "./logger": {
+            "types": "./dist/logger.d.ts",
             "import": "./dist/esm/logger.mjs",
-            "require": "./dist/cjs/logger.cjs",
-            "types": "./logger.d.ts"
+            "require": "./dist/cjs/logger.cjs"
         },
         "./middleware": {
+            "types": "./dist/middleware.d.ts",
             "import": "./dist/esm/middleware.mjs",
-            "require": "./dist/cjs/middleware.cjs",
-            "types": "./middleware.d.ts"
+            "require": "./dist/cjs/middleware.cjs"
         },
         "./sanitizer": {
+            "types": "./dist/sanitizer.d.ts",
             "import": "./dist/esm/sanitizer.mjs",
-            "require": "./dist/cjs/sanitizer.cjs",
-            "types": "./sanitizer.d.ts"
+            "require": "./dist/cjs/sanitizer.cjs"
         },
         "./error-handler": {
+            "types": "./dist/error-handler.d.ts",
             "import": "./dist/esm/errorHandler.mjs",
-            "require": "./dist/cjs/errorHandler.cjs",
-            "types": "./error-handler.d.ts"
+            "require": "./dist/cjs/errorHandler.cjs"
         },
         "./security": {
+            "types": "./dist/security.d.ts",
             "import": "./dist/esm/security.mjs",
-            "require": "./dist/cjs/security.cjs",
-            "types": "./security.d.ts"
+            "require": "./dist/cjs/security.cjs"
         },
         "./nestjs-logger": {
+            "types": "./dist/nestjs-logger.d.ts",
             "import": "./dist/esm/nestjs-logger.mjs",
-            "require": "./dist/cjs/nestjs-logger.cjs",
-            "types": "./nestjs-logger.d.ts"
+            "require": "./dist/cjs/nestjs-logger.cjs"
         },
         "./setup": {
+            "types": "./dist/setup.d.ts",
             "import": "./dist/esm/setup.mjs",
-            "require": "./dist/cjs/setup.cjs",
-            "types": "./setup.d.ts"
+            "require": "./dist/cjs/setup.cjs"
+        },
+        "./context": {
+            "types": "./dist/context.d.ts",
+            "import": "./dist/esm/context.mjs",
+            "require": "./dist/cjs/context.cjs"
         }
     },
     "scripts": {
@@ -103,7 +115,6 @@
         "node": ">=18.0.0"
     },
     "dependencies": {
-        "@aksparadise/otel-observability": "^1.0.1",
         "@opentelemetry/api": "^1.9.1",
         "@opentelemetry/api-logs": "^0.216.0",
         "@opentelemetry/auto-instrumentations-node": "^0.74.0",

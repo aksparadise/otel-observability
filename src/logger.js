@@ -9,15 +9,15 @@
 //    - Console Monkeypatching: Captures vanilla console.log calls (optional)
 //
 //  Usage:
-//    import { logger } from '@yourorg/otel-signoz-plugin/logger';
+//    import { logger } from '@aksparadise/otel-observability/logger';
 //    logger.info('User logged in', { userId: '123' });
 // ─────────────────────────────────────────────────────────────────────────────
 
 import util from "node:util";
 import { logs, SeverityNumber } from "@opentelemetry/api-logs";
-import { trace } from "@opentelemetry/api";
 import { getCurrentSpanContext } from "./tracer.js";
 import { sanitize } from "./sanitizer.js";
+import { getContext } from "./context.js";
 
 const isProduction =
     process.env.OTEL_ENVIRONMENT === "production" ||
@@ -51,7 +51,7 @@ let loggerConfig = { ...DEFAULT_LOGGER_CONFIG };
  * @param {boolean} config.showMetadataInProduction - Show metadata in production (default: false)
  *
  * @example
- * import { configureLogger } from '@yourorg/otel-signoz-plugin/logger';
+ * import { configureLogger } from '@aksparadise/otel-observability/logger';
  * configureLogger({
  *   enableConsoleOutput: true,
  *   enableOtelOutput: true,
@@ -71,11 +71,7 @@ export const configureLogger = (config = {}) => {
  */
 const prepareLogRecord = (level, args) => {
     const { traceId, spanId } = getCurrentSpanContext();
-    const span = trace.getActiveSpan();
-
-    // Auto-extract Identity from Span Attributes set by middleware
-    const userId = span?.attributes?.["user.id"];
-    const tenantId = span?.attributes?.["tenant.id"];
+    const requestContext = getContext();
 
     // 1. Serialize and Sanitize all arguments
     const sanitizedArgs = args.map((arg) => {
@@ -102,8 +98,9 @@ const prepareLogRecord = (level, args) => {
     const attributes = {
         "log.source": "application",
         "service.name": SERVICE_NAME,
-        "user.id": userId || null,
-        "tenant.id": tenantId || null,
+        "user.id": requestContext.userId || null,
+        "tenant.id": requestContext.tenantId || null,
+        "request.id": requestContext.requestId || undefined,
         "log.severity": level,
         traceId: traceId || undefined,
         spanId: spanId || undefined,
@@ -260,7 +257,7 @@ const monkeypatchConsole = () => {
  * @returns {Object} - Child logger instance
  *
  * @example
- * import { createChildLogger } from '@yourorg/otel-signoz-plugin/logger';
+ * import { createChildLogger } from '@aksparadise/otel-observability/logger';
  * const userLogger = createChildLogger({ module: 'userService' });
  * userLogger.info('User created', { userId: '123' });
  */

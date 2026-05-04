@@ -44,6 +44,9 @@ export {
     createCustomMiddleware,
 } from "./middleware.js";
 
+// Request context
+export { runWithContext, getContext, setContext } from "./context.js";
+
 // Sanitizer
 export {
     sanitize,
@@ -69,6 +72,7 @@ export { default as tracer } from "./tracer.js";
 export { default as metrics } from "./metrics.js";
 export { default as loggerDefault } from "./logger.js";
 export { default as middleware } from "./middleware.js";
+export { default as context } from "./context.js";
 export { default as sanitizer } from "./sanitizer.js";
 export { default as errorHandler } from "./errorHandler.js";
 export { default as security } from "./security.js";

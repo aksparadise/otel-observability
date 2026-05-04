@@ -11,8 +11,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { logger } from "./logger.js";
-import * as otelApi from "@opentelemetry/api";
-const { recordException } = otelApi;
+import { trace } from "@opentelemetry/api";
+
+const recordActiveException = (err) => {
+    try {
+        trace.getActiveSpan()?.recordException(err);
+    } catch {
+        // Ignore if OTel is not available.
+    }
+};
 
 /**
  * Setup global error handlers for uncaught exceptions and unhandled rejections
@@ -49,11 +56,7 @@ export const setupGlobalErrorHandler = (options = {}) => {
         }
 
         // Record exception in current span if available
-        try {
-            recordException(err);
-        } catch (e) {
-            // Ignore if OTel is not available
-        }
+        recordActiveException(err);
 
         // Call custom handler if provided
         if (typeof customHandler === "function") {
@@ -81,13 +84,7 @@ export const setupGlobalErrorHandler = (options = {}) => {
         }
 
         // Record exception in current span if available
-        try {
-            if (reason instanceof Error) {
-                recordException(reason);
-            }
-        } catch (e) {
-            // Ignore if OTel is not available
-        }
+        if (reason instanceof Error) recordActiveException(reason);
 
         // Call custom handler if provided
         if (typeof customHandler === "function") {
@@ -155,11 +152,7 @@ export const withErrorHandling = (fn, options = {}) => {
                 name: err.name,
             });
 
-            try {
-                recordException(err);
-            } catch (e) {
-                // Ignore if OTel is not available
-            }
+            recordActiveException(err);
 
             throw err;
         }
@@ -190,11 +183,7 @@ export const expressErrorHandler = (options = {}) => {
             url: req.url,
         });
 
-        try {
-            recordException(err);
-        } catch (e) {
-            // Ignore if OTel is not available
-        }
+        recordActiveException(err);
 
         if (sendResponse) {
             res.status(err.status || 500).json({

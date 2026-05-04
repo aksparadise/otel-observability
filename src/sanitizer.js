@@ -6,7 +6,7 @@
 //  and strings to prevent accidental leakage into logs or SigNoz.
 //
 //  Usage:
-//    import { sanitize } from '@yourorg/otel-signoz-plugin/sanitizer';
+//    import { sanitize } from '@aksparadise/otel-observability/sanitizer';
 //    const safeData = sanitize(userData);
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -65,7 +65,7 @@ const REDACTION_VALUE = "[REDACTED]";
  * @param {boolean} merge - Whether to merge with default fields (default: true)
  *
  * @example
- * import { configureSensitiveFields } from '@yourorg/otel-signoz-plugin/sanitizer';
+ * import { configureSensitiveFields } from '@aksparadise/otel-observability/sanitizer';
  * configureSensitiveFields(['custom_secret', 'internal_key'], true);
  */
 export const configureSensitiveFields = (fields, merge = true) => {
@@ -164,7 +164,7 @@ const sanitizeObject = (obj, depth) => {
  * @returns {any} - The sanitized data
  *
  * @example
- * import { sanitize } from '@yourorg/otel-signoz-plugin/sanitizer';
+ * import { sanitize } from '@aksparadise/otel-observability/sanitizer';
  *
  * const userData = {
  *   email: 'user@example.com',
@@ -206,7 +206,7 @@ export const sanitize = (data, depth = 0) => {
  * @returns {Object} - Sanitized object
  *
  * @example
- * import { sanitizeFields } from '@yourorg/otel-signoz-plugin/sanitizer';
+ * import { sanitizeFields } from '@aksparadise/otel-observability/sanitizer';
  *
  * const data = { email: 'test@example.com', password: 'secret', name: 'John' };
  * const safeData = sanitizeFields(data, ['password']);
@@ -238,7 +238,7 @@ export const sanitizeFields = (obj, fields) => {
  * @returns {string} - Masked string
  *
  * @example
- * import { maskString } from '@yourorg/otel-signoz-plugin/sanitizer';
+ * import { maskString } from '@aksparadise/otel-observability/sanitizer';
  *
  * maskString('1234567890123456', { visibleChars: 4 });
  * // '************3456'

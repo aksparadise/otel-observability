@@ -38,7 +38,7 @@ import { EventEmitter } from "events";
 /**
  * Default configuration for OTel SDK
  */
-const DEFAULT_CONFIG = {
+const getDefaultConfig = () => ({
     enabled: process.env.OTEL_ENABLED === "true",
     serviceName: process.env.OTEL_SERVICE_NAME || "unknown-service",
     serviceVersion: process.env.OTEL_SERVICE_VERSION || "1.0.0",
@@ -62,7 +62,10 @@ const DEFAULT_CONFIG = {
     metricExportInterval: 30_000, // 30 seconds
     // Framework detection
     framework: process.env.OTEL_FRAMEWORK || "express", // express, graphql, nextjs, custom
-};
+});
+
+let sdk = null;
+let loggerProviderInstance = null;
 
 /**
  * Validate configuration values
@@ -147,11 +150,11 @@ const getHeaders = (config) => {
  *
  * @example
  * // Use defaults from environment variables
- * import '@yourorg/otel-signoz-plugin/otel';
+ * import '@aksparadise/otel-observability/otel';
  *
  * @example
  * // Custom configuration
- * import { initOtel } from '@yourorg/otel-signoz-plugin/otel';
+ * import { initOtel } from '@aksparadise/otel-observability/otel';
  * const sdk = initOtel({
  *     serviceName: 'my-service',
  *     collectorEndpoint: 'http://signoz:4318',
@@ -159,7 +162,11 @@ const getHeaders = (config) => {
  * });
  */
 export const initOtel = (customConfig = {}) => {
-    const config = validateConfig({ ...DEFAULT_CONFIG, ...customConfig });
+    if (sdk) {
+        return sdk;
+    }
+
+    const config = validateConfig({ ...getDefaultConfig(), ...customConfig });
 
     if (!config.enabled) {
         process.stdout.write(
@@ -208,6 +215,7 @@ export const initOtel = (customConfig = {}) => {
         resource,
         processors: [new BatchLogRecordProcessor(logExporter)],
     });
+    loggerProviderInstance = loggerProvider;
     logs.setGlobalLoggerProvider(loggerProvider);
 
     // ── Default Instrumentation Configuration ───────────────────────────────
@@ -275,7 +283,7 @@ export const initOtel = (customConfig = {}) => {
         ? { ...defaultInstrumentationConfig, ...customConfig.instrumentations }
         : defaultInstrumentationConfig;
 
-    const sdk = new NodeSDK({
+    const newSdk = new NodeSDK({
         resource,
         sampler: new TraceIdRatioBasedSampler(config.samplingRatio),
         traceExporter,
@@ -287,7 +295,8 @@ export const initOtel = (customConfig = {}) => {
         instrumentations: [getNodeAutoInstrumentations(instrumentationConfig)],
     });
 
-    sdk.start();
+    newSdk.start();
+    sdk = newSdk;
 
     process.stdout.write(
         `\n [OTel] ✅ SDK started — exporting to ${endpoint}\n`,
@@ -297,7 +306,6 @@ export const initOtel = (customConfig = {}) => {
 };
 
 // ── Auto-initialize on import (unless explicitly disabled) ───────────────
-let sdk = null;
 try {
     // Fix memory leak warnings by increasing max listeners
     // This prevents "MaxListenersExceededWarning" from OTel instrumentation
@@ -316,7 +324,7 @@ try {
  * @returns {Promise<void>}
  *
  * @example
- * import { shutdownOtel } from '@yourorg/otel-signoz-plugin/otel';
+ * import { shutdownOtel } from '@aksparadise/otel-observability/otel';
  * process.on('SIGTERM', async () => {
  *     await shutdownOtel();
  *     process.exit(0);
@@ -326,6 +334,13 @@ export const shutdownOtel = async (sdkInstance = sdk) => {
     if (sdkInstance) {
         try {
             await sdkInstance.shutdown();
+            if (loggerProviderInstance) {
+                await loggerProviderInstance.shutdown();
+                loggerProviderInstance = null;
+            }
+            if (sdkInstance === sdk) {
+                sdk = null;
+            }
             process.stdout.write(
                 "\n [OTel] 🔒 SDK flushed and shut down cleanly\n",
             );

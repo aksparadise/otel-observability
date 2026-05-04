@@ -11,12 +11,13 @@
 //    3. Professional audit trails without manual tagging in every controller.
 //
 //  Usage:
-//    import { otelContextMiddleware } from '@yourorg/otel-signoz-plugin/middleware';
+//    import { otelContextMiddleware } from '@aksparadise/otel-observability/middleware';
 //    app.use(otelContextMiddleware);
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { setTraceAttributes } from "./tracer.js";
 import { logger } from "./logger.js";
+import { runWithContext } from "./context.js";
 
 /**
  * Default configuration for the middleware
@@ -44,7 +45,7 @@ let middlewareConfig = { ...DEFAULT_MIDDLEWARE_CONFIG };
  * @param {boolean} config.includeRequestId - Include request ID in trace (default: false)
  *
  * @example
- * import { configureMiddleware } from '@yourorg/otel-signoz-plugin/middleware';
+ * import { configureMiddleware } from '@aksparadise/otel-observability/middleware';
  * configureMiddleware({
  *   userIdPaths: ['user._id', 'auth.userId'],
  *   tenantIdPaths: ['user.tenantId'],
@@ -130,7 +131,7 @@ const extractDelegationId = (req) => {
  *
  * @example
  * import express from 'express';
- * import { otelContextMiddleware } from '@yourorg/otel-signoz-plugin/middleware';
+ * import { otelContextMiddleware } from '@aksparadise/otel-observability/middleware';
  *
  * const app = express();
  * app.use(verifyToken); // Authentication middleware
@@ -148,28 +149,38 @@ export const otelContextMiddleware = (req, res, next) => {
             "user.id": userId,
             "tenant.id": tenantId,
         };
+        const requestContext = {
+            userId,
+            tenantId,
+        };
 
         if (delegationId) {
             attributes["user.delegation_id"] = delegationId;
             attributes["user.is_delegated"] = "true";
+            requestContext.delegationId = delegationId;
+            requestContext.isDelegated = true;
         }
 
         // 3. Add request metadata if configured
         if (middlewareConfig.includeClientIp) {
             attributes["http.client_ip"] = req.ip || req.connection?.remoteAddress || req.socket?.remoteAddress;
+            requestContext.clientIp = attributes["http.client_ip"];
         }
 
         if (middlewareConfig.includeUserAgent) {
             attributes["http.user_agent"] = req.get("user-agent");
+            requestContext.userAgent = attributes["http.user_agent"];
         }
 
         if (middlewareConfig.includeRequestId) {
             attributes["http.request_id"] = req.id || req.headers["x-request-id"];
+            requestContext.requestId = attributes["http.request_id"];
         }
 
         // 4. Apply to Tracer
         setTraceAttributes(attributes);
 
+        return runWithContext(requestContext, next);
     } catch (err) {
         // Silently fail to ensure request processing continues
         logger.debug("Failed to inject OTel context identity", { error: err.message });
@@ -186,7 +197,7 @@ export const otelContextMiddleware = (req, res, next) => {
  * @returns {Function} - Express middleware function
  *
  * @example
- * import { createCustomMiddleware } from '@yourorg/otel-signoz-plugin/middleware';
+ * import { createCustomMiddleware } from '@aksparadise/otel-observability/middleware';
  *
  * const customMiddleware = createCustomMiddleware((req) => {
  *   return {
@@ -201,16 +212,23 @@ export const otelContextMiddleware = (req, res, next) => {
 export const createCustomMiddleware = (extractor) => {
     return (req, res, next) => {
         try {
+            if (typeof extractor !== "function") {
+                return next();
+            }
+
             const extracted = extractor(req);
             if (extracted) {
                 const attributes = {};
+                const requestContext = {};
 
                 if (extracted.userId) {
                     attributes["user.id"] = String(extracted.userId);
+                    requestContext.userId = String(extracted.userId);
                 }
 
                 if (extracted.tenantId) {
                     attributes["tenant.id"] = String(extracted.tenantId);
+                    requestContext.tenantId = String(extracted.tenantId);
                 }
 
                 // Add any custom attributes
@@ -221,6 +239,7 @@ export const createCustomMiddleware = (extractor) => {
                 });
 
                 setTraceAttributes(attributes);
+                return runWithContext(requestContext, next);
             }
         } catch (err) {
             logger.debug("Failed to inject custom OTel context", { error: err.message });

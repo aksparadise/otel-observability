@@ -5,6 +5,7 @@ export * from './otel';
 export * from './tracer';
 export * from './metrics';
 export * from './logger';
+export * from './context';
 export * from './middleware';
 export * from './sanitizer';
 export * from './errorHandler';

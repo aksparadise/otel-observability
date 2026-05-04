@@ -7,7 +7,7 @@
 //  They appear in SigNoz under the "Prometheus" datasource.
 //
 //  Usage example:
-//    import { createCounter, createHistogram, createGauge } from '@yourorg/otel-signoz-plugin/metrics';
+//    import { createCounter, createHistogram, createGauge } from '@aksparadise/otel-observability/metrics';
 //    const requestCounter = createCounter('http_requests_total', { description: 'Total HTTP requests' });
 //    requestCounter.add(1, { method: 'GET', route: '/api/users' });
 //
@@ -44,7 +44,7 @@ const meter = getMeter();
  * @returns {Counter} - OpenTelemetry Counter instance
  *
  * @example
- * import { createCounter } from '@yourorg/otel-signoz-plugin/metrics';
+ * import { createCounter } from '@aksparadise/otel-observability/metrics';
  *
  * const emailsSent = createCounter('emails_sent_total', {
  *   description: 'Total emails successfully sent',
@@ -79,7 +79,7 @@ export const createCounter = (name, options = {}) => {
  * @returns {Histogram} - OpenTelemetry Histogram instance
  *
  * @example
- * import { createHistogram } from '@yourorg/otel-signoz-plugin/metrics';
+ * import { createHistogram } from '@aksparadise/otel-observability/metrics';
  *
  * const requestDuration = createHistogram('http_request_duration_ms', {
  *   description: 'HTTP request duration in milliseconds',
@@ -122,7 +122,7 @@ export const createHistogram = (name, options = {}) => {
  * @returns {UpDownCounter} - OpenTelemetry UpDownCounter instance
  *
  * @example
- * import { createUpDownCounter } from '@yourorg/otel-signoz-plugin/metrics';
+ * import { createUpDownCounter } from '@aksparadise/otel-observability/metrics';
  *
  * const activeConnections = createUpDownCounter('active_connections_total', {
  *   description: 'Current number of active connections',
@@ -162,7 +162,7 @@ export const createUpDownCounter = (name, options = {}) => {
  * @returns {ObservableGauge} - OpenTelemetry ObservableGauge instance
  *
  * @example
- * import { createObservableGauge } from '@yourorg/otel-signoz-plugin/metrics';
+ * import { createObservableGauge } from '@aksparadise/otel-observability/metrics';
  *
  * const memoryUsage = createObservableGauge('process_memory_bytes', {
  *   description: 'Current process memory usage in bytes',
@@ -201,7 +201,7 @@ export const createObservableGauge = (name, options = {}) => {
  * @returns {Object} - Object containing all created metric instances
  *
  * @example
- * import { createMetricsBatch } from '@yourorg/otel-signoz-plugin/metrics';
+ * import { createMetricsBatch } from '@aksparadise/otel-observability/metrics';
  *
  * const metrics = createMetricsBatch({
  *   counters: {
@@ -267,4 +267,13 @@ export const isMetricsEnabled = () => {
     } catch {
         return false;
     }
+};
+
+export default {
+    createCounter,
+    createHistogram,
+    createUpDownCounter,
+    createObservableGauge,
+    createMetricsBatch,
+    isMetricsEnabled,
 };

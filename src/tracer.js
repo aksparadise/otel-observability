@@ -24,7 +24,7 @@ const SERVICE_VERSION = process.env.OTEL_SERVICE_VERSION || "1.0.0";
  * @returns {Tracer} - OpenTelemetry Tracer instance
  *
  * @example
- * import { getTracer } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { getTracer } from '@aksparadise/otel-observability/tracer';
  * const tracer = getTracer('userService');
  * const span = tracer.startSpan('user.create');
  * span.end();
@@ -49,7 +49,7 @@ export const getTracer = (name) => {
  * @returns {Promise<any>} - Result of the function execution
  *
  * @example
- * import { withSpan } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { withSpan } from '@aksparadise/otel-observability/tracer';
  *
  * const result = await withSpan(
  *   'user.create',
@@ -61,7 +61,7 @@ export const getTracer = (name) => {
  * );
  */
 export const withSpan = async (spanName, fn, attributes = {}) => {
-    const tracer = trace.getTracer("otel-signoz-plugin", SERVICE_VERSION);
+    const tracer = trace.getTracer("otel-observability", SERVICE_VERSION);
 
     return tracer.startActiveSpan(spanName, async (span) => {
         try {
@@ -95,7 +95,7 @@ export const withSpan = async (spanName, fn, attributes = {}) => {
  * @returns {string|null} - Current trace ID or null
  *
  * @example
- * import { getCurrentTraceId } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { getCurrentTraceId } from '@aksparadise/otel-observability/tracer';
  * const traceId = getCurrentTraceId();
  * console.log(`Processing request in trace: ${traceId}`);
  */
@@ -115,7 +115,7 @@ export const getCurrentTraceId = () => {
  * @returns {{ traceId: string|null, spanId: string|null }} - Current span context
  *
  * @example
- * import { getCurrentSpanContext } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { getCurrentSpanContext } from '@aksparadise/otel-observability/tracer';
  * const { traceId, spanId } = getCurrentSpanContext();
  * logger.info('Processing request', { traceId, spanId });
  */
@@ -137,7 +137,7 @@ export const getCurrentSpanContext = () => {
  * @param {Object} attributes - Key/value pairs to set as span attributes
  *
  * @example
- * import { setTraceAttributes } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { setTraceAttributes } from '@aksparadise/otel-observability/tracer';
  * setTraceAttributes({
  *   'user.id': userId,
  *   'tenant.id': tenantId,
@@ -165,7 +165,7 @@ export const setTraceAttributes = (attributes = {}) => {
  * @param {string} tenantId - Tenant/client identifier (optional)
  *
  * @example
- * import { setTraceUser } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { setTraceUser } from '@aksparadise/otel-observability/tracer';
  * setTraceUser('user-123', 'tenant-456');
  */
 export const setTraceUser = (userId, tenantId) => {
@@ -184,7 +184,7 @@ export const setTraceUser = (userId, tenantId) => {
  * @returns {Span} - OpenTelemetry Span instance
  *
  * @example
- * import { startSpan } from '@yourorg/otel-signoz-plugin/tracer';
+ * import { startSpan } from '@aksparadise/otel-observability/tracer';
  * const span = startSpan('background.job', {
  *   attributes: { 'job.type': 'email' }
  * });
@@ -193,7 +193,7 @@ export const setTraceUser = (userId, tenantId) => {
  */
 export const startSpan = (name, options = {}) => {
     try {
-        const tracer = trace.getTracer("otel-signoz-plugin", SERVICE_VERSION);
+        const tracer = trace.getTracer("otel-observability", SERVICE_VERSION);
         return tracer.startSpan(name, options);
     } catch (err) {
         // Return no-op span if OTel is not initialized
@@ -206,4 +206,14 @@ export const startSpan = (name, options = {}) => {
             spanContext: () => ({ traceId: null, spanId: null }),
         };
     }
+};
+
+export default {
+    getTracer,
+    withSpan,
+    getCurrentTraceId,
+    getCurrentSpanContext,
+    setTraceAttributes,
+    setTraceUser,
+    startSpan,
 };
