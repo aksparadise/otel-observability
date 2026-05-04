@@ -1,6 +1,7 @@
 # @aksparadise/otel-observability
 
 ![npm version](https://img.shields.io/npm/v/@aksparadise/otel-observability)
+[![Socket Badge](https://badge.socket.dev/npm/package/@aksparadise/otel-observability/1.1.13)](https://badge.socket.dev/npm/package/@aksparadise/otel-observability/1.1.13)
 
 Production-ready OpenTelemetry plugin for SigNoz and Grafana observability with minimal setup. Supports Express, GraphQL, Next.js, and more.
 
