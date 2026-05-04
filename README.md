@@ -1,4 +1,5 @@
 # The fastest way to get OpenTelemetry running in Node.js
+
 ### (and a standardizable way to keep it consistent across services)
 
 ![npm version](https://img.shields.io/npm/v/@aksparadise/otel-observability)
@@ -45,14 +46,16 @@ await setup();
 ➡️ See traces within minutes. **Done.**
 
 **One request ➡️ Full trace (HTTP + DB + logs, correlated)**
-*No manual context passing required.*
+_No manual context passing required._
 
 **You should see:**
+
 - ✅ One root HTTP span
 - ✅ Nested Database spans (Mongoose, Redis, SQL)
 - ✅ Structured logs linked via `trace_id`
 
 **No manual SDK wiring or multi-file setup. No digging through OpenTelemetry docs.**
+
 - ✅ **HTTP request traces** with status codes and full paths
 - ✅ **Database queries** (Mongoose, Redis, SQL) without manual spans
 - ✅ **Errors with stack traces** — even ones you didn't log
@@ -62,7 +65,7 @@ await setup();
 ## 🧠 What This Actually Does (In Plain English)
 
 - **Eliminates manual OpenTelemetry SDK wiring**
-- **Auto-instruments** HTTP, Express, Mongoose, Redis, BullMQ, and GraphQL
+- **Auto-instruments** HTTP, Express, Mongoose, Redis, and GraphQL
 - **Uses OpenTelemetry’s official auto-instrumentations** (no custom patching layer)
 - **Configures OTLP export** directly from your `.env` automatically
 - **Adds structured logging** and global error capture out of the box
@@ -77,12 +80,13 @@ Every service using `setup()` shares an identical auditable contract:
 - **Tracing:** OTLP (HTTP), W3C Trace Context, Parent-based sampling (default: 1.0).
 - **Metrics:** Periodic OTLP exporting, runtime metrics (CPU, memory, event loop).
 - **Logging:** Structured JSON, automatic trace/span correlation, global error capture.
-- **Instrumentation:** HTTP, Express/NestJS/Next.js, Mongoose, Redis, GraphQL, BullMQ.
+- **Instrumentation:** HTTP, Express/NestJS/Next.js, Mongoose, Redis, GraphQL.
 - **Security:** Default PII redaction (`password`, `token`, `apiKey`, etc.).
 
 > This creates a consistent, versioned observability baseline across all services.
 
 > 🐛 **If you don't see traces:**
+>
 > - Verify your OTLP endpoint is reachable
 > - Confirm your backend (SigNoz / Grafana) is running
 > - Set `OTEL_LOG_LEVEL=debug` in your `.env` for raw SDK diagnostics
@@ -90,14 +94,16 @@ Every service using `setup()` shares an identical auditable contract:
 ## 📸 What You'll See in Your Dashboard
 
 ![Trace appearing in SigNoz after single function call](./assets/signoz-trace-example.png)
-*Trace captured after calling `await setup()` — no manual spans added*
+_Trace captured after calling `await setup()` — no manual spans added_
 
 ### **Console Success Indicator:**
+
 ```
 [OTEL] ✅ SDK started — exporting to http://localhost:4318
 ```
 
 ### **Dashboard Results:**
+
 - **See slow Mongo queries** without writing a single span
 - **Catch production crashes** with full trace context—even if you didn't log them
 - **Request logs** automatically correlated with trace IDs
@@ -105,18 +111,18 @@ Every service using `setup()` shares an identical auditable contract:
 
 ### **The Difference: Consistency vs Drift**
 
-| | Traditional OTel Setup | **This Standardization Layer** |
-|---|---|---|
-| **Across Services** | Different setups, configuration drift | **Identical, repeatable setup** |
-| **Setup Time** | 1–2 hours per service | **< 2 minutes per service** |
+|                      | Traditional OTel Setup                | **This Standardization Layer**   |
+| -------------------- | ------------------------------------- | -------------------------------- |
+| **Across Services**  | Different setups, configuration drift | **Identical, repeatable setup**  |
+| **Setup Time**       | 1–2 hours per service                 | **< 2 minutes per service**      |
 | **Trace Continuity** | Often breaks due to config mismatches | **Consistent trace propagation** |
-| **Maintenance** | 200+ lines of boilerplate per repo | **One line: `await setup()`** |
-| **Governance** | Impossible to enforce | **Enforced by design** |
+| **Maintenance**      | 200+ lines of boilerplate per repo    | **One line: `await setup()`**    |
+| **Governance**       | Impossible to enforce                 | **Enforced by design**           |
 
 - 🚀 **Minimal Configuration:** Auto-detects Express, NestJS, and Next.js. No boilerplate.
 - 🛡️ **Secure by Default:** Auto-redacts sensitive PII (e.g. `password`, `token`, `apiKey`) before export. [Socket.dev verified](https://socket.dev/npm/package/@aksparadise/otel-observability).
 - 🔌 **Backend Agnostic:** SigNoz, Grafana Cloud, or any OTLP-compatible backend.
-- 🕸️ **Automatic Instrumentation:** HTTP, Express, Mongoose, Redis, BullMQ, GraphQL — all traced out of the box.
+- 🕸️ **Automatic Instrumentation:** HTTP, Express, Mongoose, Redis, GraphQL — all traced out of the box.
 - 🚦 **Global Error Handling:** Captures uncaught exceptions automatically, even without an explicit logger.
 - 🚺 **Not locked in:** Drop down to raw `NodeSDK` options anytime via `setup({ instrumentations: { ... } })`.
 
@@ -150,11 +156,11 @@ sdk.start();
 **With this library:**
 
 ```ts
-import { setup } from '@aksparadise/otel-observability';
+import { setup } from "@aksparadise/otel-observability";
 await setup(); // That's it.
 ```
 
-> **The Copy-Paste Trap:** Most teams already *have* OpenTelemetry... they just don’t have it set up consistently across their services. This library fixes that drift instantly.
+> **The Copy-Paste Trap:** Most teams already _have_ OpenTelemetry... they just don’t have it set up consistently across their services. This library fixes that drift instantly.
 
 ## 🤔 Why Not Just Use OpenTelemetry Directly?
 
@@ -172,7 +178,7 @@ This library standardizes that setup into a **single, repeatable entry point**. 
 **The Trade-off (Explicit):**
 By default, this library abstracts manual `NodeSDK` lifecycle management, per-instrumentation wiring, and custom exporter setup. If you rely on multiple simultaneous exporters (e.g., OTLP + Jaeger), custom span processors, or deep SDK hooks, you may need to extend or bypass `setup()`.
 
-*For the vast majority of APIs, workers, and microservices, you won't need to go lower-level.*
+_For the vast majority of APIs, workers, and microservices, you won't need to go lower-level._
 
 ## 🔁 Already Using OpenTelemetry?
 
@@ -195,7 +201,7 @@ You can adopt this incrementally without risking your existing telemetry.
 - **Need to roll back?** Remove `setup()` ➡️ revert to your previous SDK setup. No data model or vendor lock-in to undo.
 - **Custom instrumentation stays intact:** Existing spans continue to work. This library does not override manual tracing.
 
-*This library standardizes initialization — it does not change your telemetry model.*
+_This library standardizes initialization — it does not change your telemetry model._
 
 ## 🏭 Designed for Real Services
 
@@ -235,7 +241,7 @@ This library is designed specifically to be pinned and shared as a core dependen
 This library is designed for and used in multi-service Node.js environments:
 
 - **APIs & Microservices:** Production Express, NestJS, and Next.js applications.
-- **Background Workers:** BullMQ and vanilla Node.js process tracing.
+- **Background Workers:** Vanilla Node.js process tracing.
 - **Unified Observability:** Standardized across teams using SigNoz and Grafana Cloud collectors.
 
 > Designed to be the shared observability baseline for Node.js platform teams.
@@ -247,20 +253,23 @@ Before digging into the code, check these first:
 ### ⚠️ Common Misconfiguration: Wrong OTLP Endpoint
 
 If your OTLP endpoint is incorrect or unreachable:
+
 - No traces will appear in your backend.
 - You will see this in your console: `[OTEL] Exporter failed to send spans (ECONNREFUSED)`.
 
 **Fix:**
+
 - Verify `OTEL_EXPORTER_OTLP_ENDPOINT` in your `.env`.
 - Ensure your collector is running on port 4318 (HTTP/JSON).
 - Check network connectivity between your app and the collector.
 
 ### Other Troubleshooting:
+
 - **Enable debug logs** with `OTEL_LOG_LEVEL=debug` in your `.env`.
 - **Disable specific instrumentations** via `setup({ instrumentations: { ... } })`.
 - **Drop down to raw OpenTelemetry** at any time.
 
-*No lock-in — this is a thin wrapper, not a black box.*
+_No lock-in — this is a thin wrapper, not a black box._
 
 ## 🚀 Quick Start (Express / Node.js)
 
@@ -269,6 +278,7 @@ npm install @aksparadise/otel-observability
 ```
 
 **.env**
+
 ```env
 OTEL_ENABLED=true
 OTEL_BACKEND=signoz
@@ -318,7 +328,11 @@ startServer();
 Once `setup()` is called, you have access to structured logging, custom spans, and metrics:
 
 ```typescript
-import { logger, withSpan, createCounter } from "@aksparadise/otel-observability";
+import {
+    logger,
+    withSpan,
+    createCounter,
+} from "@aksparadise/otel-observability";
 
 // Structured log — automatically correlated with the active trace
 logger.info("User signed up", { userId: "u_123", plan: "pro" });
@@ -350,6 +364,7 @@ graph LR
 ```
 
 **Mental model:**
+
 ```
 setup()    = wire up the infrastructure (do this once, first)
 middleware = attach user/request identity to traces (optional)
@@ -364,7 +379,7 @@ your code  = business logic (unchanged)
 - Heavily customize spans at the SDK level
 - Require direct, raw access to `NodeSDK` internals
 
-> **Not locked in.** This library is a configured wrapper *on top of* the OpenTelemetry SDK — you can always drop down to raw OTEL config via the `setup()` options or bypass it entirely.
+> **Not locked in.** This library is a configured wrapper _on top of_ the OpenTelemetry SDK — you can always drop down to raw OTEL config via the `setup()` options or bypass it entirely.
 
 ## 🔭 What This Does NOT Hide
 
@@ -383,8 +398,9 @@ Some developers worry observability wrappers are "magic." Here's exactly what's 
 - **Avoids duplicate instrumentation** when used as the primary initialization layer. If you already manually initialize OpenTelemetry, remove that setup before calling `setup()`.
 
 > Aliasing tip: In large codebases where `setup()` feels too generic:
+>
 > ```ts
-> import { setup as setupObservability } from '@aksparadise/otel-observability';
+> import { setup as setupObservability } from "@aksparadise/otel-observability";
 > await setupObservability();
 > ```
 
@@ -415,21 +431,21 @@ This library is most useful when:
 
 - **You’re setting up a new service** and don’t want to spend 2 hours on OTel wiring.
 - **You’re tired of copy-pasting** the same OpenTelemetry bootstrap code between projects.
-- **You want traces + logs + metrics working *immediately*** in dev or staging.
+- **You want traces + logs + metrics working _immediately_** in dev or staging.
 - **You’re not ready for Datadog/New Relic pricing** but need production visibility.
 
-*If you are building a custom OTLP pipeline or require highly specific exporter overrides, use raw OpenTelemetry instead.*
+_If you are building a custom OTLP pipeline or require highly specific exporter overrides, use raw OpenTelemetry instead._
 
 ---
 
 ## 📚 Documentation
 
-| Guide | Description |
-|---|---|
-| [docs/nestjs.md](./docs/nestjs.md) | NestJS logger integration, auto-detect setup, advanced config |
-| [docs/nextjs.md](./docs/nextjs.md) | Next.js instrumentation.ts setup, middleware |
-| [docs/api.md](./docs/api.md) | Full API reference: tracer, metrics, logger, sanitizer |
-| [docs/production.md](./docs/production.md) | Production config, sampling, backends, troubleshooting |
+| Guide                                      | Description                                                   |
+| ------------------------------------------ | ------------------------------------------------------------- |
+| [docs/nestjs.md](./docs/nestjs.md)         | NestJS logger integration, auto-detect setup, advanced config |
+| [docs/nextjs.md](./docs/nextjs.md)         | Next.js instrumentation.ts setup, middleware                  |
+| [docs/api.md](./docs/api.md)               | Full API reference: tracer, metrics, logger, sanitizer        |
+| [docs/production.md](./docs/production.md) | Production config, sampling, backends, troubleshooting        |
 
 ---
 
@@ -454,7 +470,7 @@ The package uses zero runtime dependencies outside of the core OpenTelemetry SDK
 
 ## 💬 Share This
 
-**Most teams already *have* OpenTelemetry — they just don’t have it set up consistently.**
+**Most teams already _have_ OpenTelemetry — they just don’t have it set up consistently.**
 
 If you have more than one Node.js service, you already have observability drift — whether you notice it or not. Fix it in 2 minutes:
 
