@@ -171,7 +171,7 @@ async function bootstrap() {
     const observability = await setup(); // Auto-detects NestJS and returns logger
 
     const app = await NestFactory.create(AppModule, {
-        logger: observability.logger, // Auto-configured NestJS logger
+        logger: observability.logger ?? undefined, // Auto-configured NestJS logger (handles null case)
     });
 
     // ... your app setup
