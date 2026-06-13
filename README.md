@@ -36,11 +36,15 @@
    - [Custom Tracing Spans](#custom-tracing-spans)
    - [Correlated Structured Logging](#correlated-structured-logging)
    - [Custom Metrics Counters & Histograms](#custom-metrics-counters--histograms)
-9. [⚡ Performance, Overhead & Memory Transparency](#-performance-overhead--memory-transparency)
-10. [💻 Local Development vs. Production Guidelines](#-local-development-vs-production-guidelines)
-11. [🔒 Trust, Security & Compliance](#-trust-security--compliance)
-12. [🧩 Troubleshooting & Silent Failure Diagnostics](#-troubleshooting--silent-failure-diagnostics)
-13. [🙋 Frequently Asked Questions (FAQ)](#-faq)
+9. [🛠️ Custom Spans & Metrics (Standard OTel API)](#️-custom-spans--metrics-standard-otel-api)
+10. [🔒 Built-In PII Redaction & Sensitive Data Masking](#-built-in-pii-redaction--sensitive-data-masking)
+11. [🌐 Distributed Tracing & W3C Context Propagation](#-distributed-tracing--w3c-context-propagation)
+12. [🧪 Running Tests & CI/CD Isolation](#-running-tests--cicd-isolation)
+13. [⚡ Performance, Overhead & Memory Transparency](#-performance-overhead--memory-transparency)
+14. [💻 Local Development vs. Production Guidelines](#-local-development-vs-production-guidelines)
+15. [🔒 Trust, Security & Compliance](#-trust-security--compliance)
+16. [🧩 Troubleshooting & Silent Failure Diagnostics](#-troubleshooting--silent-failure-diagnostics)
+17. [🙋 Frequently Asked Questions (FAQ)](#-faq)
 
 ---
 
@@ -384,6 +388,150 @@ signupCounter.add(1, { plan: "enterprise" });
 
 // 3. Monitor performance timings
 dbDuration.record(42, { table: "users", operation: "SELECT" });
+```
+
+---
+
+## 🛠️ Creating Custom Spans & Metrics (Standard OTel API)
+
+To protect your software architecture from vendor lock-in, `@aksparadise/otel-observability` registers standard OpenTelemetry providers globally. This means you can import and use the standard, official `@opentelemetry/api` package anywhere in your application, and manual telemetry will be captured and exported seamlessly alongside automatic auto-instrumentations.
+
+### 1. Install the official API
+```bash
+npm install @opentelemetry/api
+```
+
+### 2. Construct Custom Trace Spans
+Use the standard tracer API anywhere in your code to group operations and assign custom context metrics:
+
+```typescript
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+
+const tracer = trace.getTracer("my-application");
+
+// Create a custom trace block
+await tracer.startActiveSpan("process-payment", async (span) => {
+    try {
+        // Your business logic here
+        span.setAttribute("payment.amount", 99.99);
+        span.setAttribute("payment.gateway", "stripe");
+        
+        await processStripeTransaction();
+
+        span.setStatus({ code: SpanStatusCode.OK });
+    } catch (error) {
+        // Record crashes with trace-linked exception details
+        span.recordException(error as Error);
+        span.setStatus({
+            code: SpanStatusCode.ERROR, // or code: 2
+            message: (error as Error).message
+        });
+        throw error;
+    } finally {
+        span.end(); // Always close your spans!
+    }
+});
+```
+
+---
+
+## 🔒 Built-In PII Redaction, Attribute Scrubbing & Sensitive Data Masking
+
+Enterprise teams must ensure that personally identifiable information (PII), passwords, or authorization headers never leave their environment. `@aksparadise/otel-observability` features **automated trace-level attribute scrubbing** and a **circular-safe sanitization engine** to prevent data leaks.
+
+### 1. Automatic Trace Attribute Scrubbing
+By default, standard database and HTTP headers might contain sensitive data. The library's `CustomSpanProcessor` automatically filters and redacts values for attributes containing sensitive keys:
+`authorization`, `password`, `secret`, `token`, `apikey`, `api_key`, `credit_card`.
+
+### 2. Programmatic Span Interception (onSpanStart & onSpanEnd)
+For advanced, fine-grained control, you can define custom lifecycle hooks directly when bootstrapping the library to redact, rewrite, or inject attributes before spans are dispatched:
+
+```javascript
+import { setup } from "@aksparadise/otel-observability";
+
+await setup({
+    // Intercept and sanitize attributes on span closure
+    onSpanEnd: (span) => {
+        // Custom header redaction
+        if (span.attributes["http.request.header.authorization"]) {
+            span.attributes["http.request.header.authorization"] = "[REDACTED]";
+        }
+        
+        // Inject custom metadata dynamically
+        span.attributes["custom.meta.version"] = "1.1.25";
+    }
+});
+```
+
+### 3. Automatic Object & Query Parameter Sanitizer
+Our circular-safe sanitization engine automatically filters application logging arguments and objects before they leave your system.
+
+```typescript
+import { configureSensitiveFields, sanitize } from "@aksparadise/otel-observability/sanitizer";
+
+// 1. Append custom sensitive identifiers to the automatic redaction list
+configureSensitiveFields(["tax_id", "medical_record_number"], true);
+
+// 2. Circular-Safe Engineering tracks object graphs to prevent memory overflows
+const parent: any = { name: "John Doe" };
+parent.self = parent; // Circular reference
+
+// Safely returns: { name: 'John Doe', self: '[Circular]' }
+const safeOutput = sanitize(parent);
+```
+
+---
+
+## 🌐 Distributed Tracing & W3C Context Propagation
+
+Distributed tracing's superpower is linking a frontend HTTP request to a backend API call, and then to a database query. For this to work across different servers, W3C trace context headers must be propagated.
+
+```
+┌───────────────┐                  ┌───────────────┐
+│   Service A   │ ──(HTTP Call)──> │   Service B   │
+│               │  traceparent     │               │
+│ (Starts Trace)│  tracestate      │ (Child Spans) │
+└───────────────┘                  └───────────────┘
+```
+
+This library **automatically configures W3C context propagation** out of the box:
+*   **Automatic Header Injection**: When Service A issues an HTTP call via `fetch`, `axios`, or standard `http`, standard `traceparent` and `tracestate` headers are automatically injected into the request headers.
+*   **Automatic Header Extraction**: When Service B receives the incoming HTTP request, the auto-instrumentation hooks extract these headers and automatically nest Service B's spans as children of the parent trace.
+*   **Zero Setup Required**: This entire handoff occurs seamlessly across your microservice fleet with no manual context-passing, request wrapping, or custom code modifications.
+
+---
+
+## 🧪 Running Tests & CI/CD Isolation
+
+In test runner environments (like Vitest, Jest, or Mocha) or CI pipelines, developers do not want OpenTelemetry trying to connect to a real collector, which can cause network timeout errors, slow down test suites, or clutter development dashboards.
+
+### 1. Conditionally Skip Initialization
+Skip bootstrapping setup during test suite runs entirely:
+
+```javascript
+// instrumentation.js
+import { setup } from "@aksparadise/otel-observability";
+
+// Only run telemetry in actual runtime environments, not test runner sessions
+if (process.env.NODE_ENV !== "test" && process.env.VITEST !== "true") {
+    await setup();
+}
+```
+
+### 2. Direct Telemetry to Console Instead of Collector
+Or, you can route all telemetry data directly to stdout/console inside test configurations:
+
+```javascript
+await setup({
+    exporter: "console" // Prints traces, metrics, and logs directly to console/stdout
+});
+```
+
+### 3. Disable via Environment Variables
+Alternatively, disable OpenTelemetry entirely by specifying:
+
+```env
+OTEL_ENABLED=false
 ```
 
 ---

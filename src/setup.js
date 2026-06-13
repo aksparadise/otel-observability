@@ -22,13 +22,13 @@ import { createRequire } from "node:module";
 const require = createRequire(`${process.cwd()}/package.json`);
 
 // Auto-initialize OTel SDK if enabled
-const initializeOtel = async () => {
-    if (process.env.OTEL_ENABLED === "true") {
+const initializeOtel = async (customConfig = {}) => {
+    if (process.env.OTEL_ENABLED === "true" || customConfig.enabled === true) {
         try {
             // Import the module and then explicitly call initOtel().
             // This keeps setup() working even when OTEL_AUTO_START=false.
             const { initOtel } = await import("./otel.js");
-            const sdk = initOtel();
+            const sdk = initOtel(customConfig);
             return Boolean(sdk);
         } catch (error) {
             console.error("[OTel] OTel SDK initialization failed:", error);
@@ -48,6 +48,7 @@ const initializeOtel = async () => {
  * @param {boolean} options.enableMonkeypatch - Console monkeypatching (default: true)
  * @param {boolean} options.consoleColors - Colored console (default: true)
  * @param {string} options.framework - Force framework detection (default: auto)
+ * @param {string} options.exporter - Exporter type (default: otlp)
  *
  * @example
  * // Simple auto-setup
@@ -62,7 +63,7 @@ const initializeOtel = async () => {
  */
 export const setup = async (options = {}) => {
     // Auto-detect configuration from environment variables
-    const otelEnabled = process.env.OTEL_ENABLED === "true";
+    const otelEnabled = process.env.OTEL_ENABLED === "true" || options.exporter === "console" || options.enabled === true;
 
     const {
         autoDetect = true,
@@ -72,13 +73,26 @@ export const setup = async (options = {}) => {
         consoleColors = true,
         showMetadataInProduction = false,
         framework = null,
+        exporter = process.env.OTEL_EXPORTER || "otlp",
         ...loggerOptions
     } = options;
 
     // 0️⃣ Initialize OTel SDK first (critical for SigNoz integration)
     let otelSdkInitialized = false;
     if (enableOtelOutput && otelEnabled) {
-        otelSdkInitialized = await initializeOtel();
+        const otelConfig = {
+            enabled: otelEnabled,
+            exporter,
+        };
+        // Forward potential OTel environment variables if set in options
+        if (options.serviceName) otelConfig.serviceName = options.serviceName;
+        if (options.serviceVersion) otelConfig.serviceVersion = options.serviceVersion;
+        if (options.collectorEndpoint) otelConfig.collectorEndpoint = options.collectorEndpoint;
+        if (options.samplingRatio) otelConfig.samplingRatio = options.samplingRatio;
+        if (options.environment) otelConfig.environment = options.environment;
+        if (options.instrumentations) otelConfig.instrumentations = options.instrumentations;
+
+        otelSdkInitialized = await initializeOtel(otelConfig);
     }
 
     // 1️⃣ Configure Logger with optimal defaults

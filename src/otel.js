@@ -21,14 +21,15 @@ import { logs } from "@opentelemetry/api-logs";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { OTLPMetricExporter } from "@opentelemetry/exporter-metrics-otlp-http";
 import { OTLPLogExporter } from "@opentelemetry/exporter-logs-otlp-http";
-import { PeriodicExportingMetricReader } from "@opentelemetry/sdk-metrics";
+import { PeriodicExportingMetricReader, ConsoleMetricExporter } from "@opentelemetry/sdk-metrics";
 import {
     BatchLogRecordProcessor,
     LoggerProvider,
+    ConsoleLogRecordExporter,
 } from "@opentelemetry/sdk-logs";
 import { getNodeAutoInstrumentations } from "@opentelemetry/auto-instrumentations-node";
 import { resourceFromAttributes } from "@opentelemetry/resources";
-import { TraceIdRatioBasedSampler } from "@opentelemetry/sdk-trace-base";
+import { TraceIdRatioBasedSampler, ConsoleSpanExporter, BatchSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import {
     ATTR_SERVICE_NAME,
     ATTR_SERVICE_VERSION,
@@ -44,6 +45,8 @@ const getDefaultConfig = () => ({
     serviceVersion: process.env.OTEL_SERVICE_VERSION || "1.0.0",
     // Backend selection: 'signoz' (default), 'grafana', or 'custom'
     backend: process.env.OTEL_BACKEND || "signoz",
+    // Exporter type: 'otlp' (default) or 'console'
+    exporter: process.env.OTEL_EXPORTER || "otlp",
     // SigNoz endpoint (default)
     collectorEndpoint:
         process.env.OTEL_EXPORTER_OTLP_ENDPOINT || "http://localhost:4318",
@@ -66,6 +69,50 @@ const getDefaultConfig = () => ({
 
 let sdk = null;
 let loggerProviderInstance = null;
+
+/**
+ * Custom Span Processor to support callbacks (onSpanStart, onSpanEnd) and automatic attribute sanitization
+ */
+class CustomSpanProcessor extends BatchSpanProcessor {
+    constructor(exporter, options = {}) {
+        super(exporter, options);
+        this._onSpanStart = options.onSpanStart;
+        this._onSpanEnd = options.onSpanEnd;
+    }
+
+    onStart(span, parentContext) {
+        if (typeof this._onSpanStart === "function") {
+            try {
+                this._onSpanStart(span, parentContext);
+            } catch (err) {
+                console.error("[OTel] Error in onSpanStart callback:", err);
+            }
+        }
+        super.onStart(span, parentContext);
+    }
+
+    onEnd(span) {
+        // Automatically sanitize attributes
+        if (span.attributes) {
+            for (const key of Object.keys(span.attributes)) {
+                const lowerKey = key.toLowerCase();
+                const isSensitive = ["authorization", "password", "secret", "token", "apikey", "api_key", "credit_card"].some(field => lowerKey.includes(field));
+                if (isSensitive && typeof span.attributes[key] === "string") {
+                    span.attributes[key] = "[REDACTED]";
+                }
+            }
+        }
+
+        if (typeof this._onSpanEnd === "function") {
+            try {
+                this._onSpanEnd(span);
+            } catch (err) {
+                console.error("[OTel] Error in onSpanEnd callback:", err);
+            }
+        }
+        super.onEnd(span);
+    }
+}
 
 /**
  * Validate configuration values
@@ -93,8 +140,9 @@ const validateConfig = (config) => {
             );
         }
     } else if (
-        !config.collectorEndpoint ||
-        typeof config.collectorEndpoint !== "string"
+        config.exporter !== "console" &&
+        (!config.collectorEndpoint ||
+        typeof config.collectorEndpoint !== "string")
     ) {
         // SigNoz or custom backend
         errors.push("OTEL_EXPORTER_OTLP_ENDPOINT must be a valid URL string");
@@ -175,8 +223,10 @@ export const initOtel = (customConfig = {}) => {
         return null;
     }
 
+    const isConsoleExporter = config.exporter === "console";
+
     process.stdout.write(
-        `\n [OTel] Initializing with backend: ${config.backend.toUpperCase()}, sampling ratio: ${config.samplingRatio}\n`,
+        `\n [OTel] Initializing with backend: ${config.backend.toUpperCase()}, exporter: ${config.exporter.toUpperCase()}, sampling ratio: ${config.samplingRatio}\n`,
     );
 
     const endpoint = getEndpoint(config);
@@ -192,23 +242,29 @@ export const initOtel = (customConfig = {}) => {
         "otel.library.version": config.serviceVersion,
     });
 
-    // ── Trace Exporter → OTel Collector → SigNoz Tempo / Grafana Tempo ───────
-    const traceExporter = new OTLPTraceExporter({
-        url: `${endpoint}/v1/traces`,
-        headers,
-    });
+    // ── Trace Exporter ────────────────────────────────────────────────────────
+    const traceExporter = isConsoleExporter
+        ? new ConsoleSpanExporter()
+        : new OTLPTraceExporter({
+              url: `${endpoint}/v1/traces`,
+              headers,
+          });
 
-    // ── Metric Exporter → OTel Collector → Prometheus ────────────────────────
-    const metricExporter = new OTLPMetricExporter({
-        url: `${endpoint}/v1/metrics`,
-        headers,
-    });
+    // ── Metric Exporter ───────────────────────────────────────────────────────
+    const metricExporter = isConsoleExporter
+        ? new ConsoleMetricExporter()
+        : new OTLPMetricExporter({
+              url: `${endpoint}/v1/metrics`,
+              headers,
+          });
 
-    // ── Log Exporter → OTel Collector → SigNoz Loki / Grafana Loki ────────────
-    const logExporter = new OTLPLogExporter({
-        url: `${endpoint}/v1/logs`,
-        headers,
-    });
+    // ── Log Exporter ──────────────────────────────────────────────────────────
+    const logExporter = isConsoleExporter
+        ? new ConsoleLogRecordExporter()
+        : new OTLPLogExporter({
+              url: `${endpoint}/v1/logs`,
+              headers,
+          });
 
     // ── Logger Provider Setup ────────────────────────────────────────────────
     const loggerProvider = new LoggerProvider({
@@ -294,10 +350,15 @@ export const initOtel = (customConfig = {}) => {
         ? { ...defaultInstrumentationConfig, ...customConfig.instrumentations }
         : defaultInstrumentationConfig;
 
+    const spanProcessor = new CustomSpanProcessor(traceExporter, {
+        onSpanStart: config.onSpanStart,
+        onSpanEnd: config.onSpanEnd,
+    });
+
     const newSdk = new NodeSDK({
         resource,
         sampler: new TraceIdRatioBasedSampler(config.samplingRatio),
-        traceExporter,
+        spanProcessor,
         metricReader: new PeriodicExportingMetricReader({
             exporter: metricExporter,
             exportIntervalMillis: config.metricExportInterval,
