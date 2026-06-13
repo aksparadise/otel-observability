@@ -239,8 +239,15 @@ export const initOtel = (customConfig = {}) => {
 
         // ioredis — show command + first arg
         "@opentelemetry/instrumentation-ioredis": {
-            dbStatementSerializer: (cmdName, cmdArgs) =>
-                `${cmdName} ${String(cmdArgs?.[0] ?? "").substring(0, 80)}`,
+            dbStatementSerializer: (cmdName, cmdArgs) => {
+                try {
+                    const firstArg = cmdArgs?.[0];
+                    const argStr = firstArg !== undefined && firstArg !== null ? String(firstArg) : "";
+                    return `${cmdName} ${argStr.substring(0, 80)}`;
+                } catch {
+                    return cmdName || "[unknown redis command]";
+                }
+            },
         },
 
         // HTTP — skip health checks and the collector endpoint to prevent loops
@@ -248,13 +255,17 @@ export const initOtel = (customConfig = {}) => {
         "@opentelemetry/instrumentation-http": {
             ignoreOutgoingUrls: [/\/health/, /4318/, /4317/],
             ignoreIncomingRequestHook: (req) => {
-                const url = req.url || "";
-                return (
-                    url.includes("/health") ||
-                    url.includes("/metrics") ||
-                    url.includes("/favicon.ico") ||
-                    url.includes("/_next") // Ignore Next.js internal requests
-                );
+                try {
+                    const url = req?.url || "";
+                    return (
+                        url.includes("/health") ||
+                        url.includes("/metrics") ||
+                        url.includes("/favicon.ico") ||
+                        url.includes("/_next") // Ignore Next.js internal requests
+                    );
+                } catch {
+                    return false;
+                }
             },
         },
 
@@ -307,9 +318,11 @@ export const initOtel = (customConfig = {}) => {
 
 // ── Auto-initialize on import (unless explicitly disabled) ───────────────
 try {
-    // Fix memory leak warnings by increasing max listeners
+    // Fix memory leak warnings by safely increasing max listeners
     // This prevents "MaxListenersExceededWarning" from OTel instrumentation
-    EventEmitter.defaultMaxListeners = 20;
+    if (typeof EventEmitter.defaultMaxListeners === "number" && EventEmitter.defaultMaxListeners < 20) {
+        EventEmitter.defaultMaxListeners = 20;
+    }
 
     // Allow consumers (or setup()) to control SDK start explicitly.
     // Default behavior remains auto-start on import.

@@ -86,10 +86,14 @@ const prepareLogRecord = (level, args) => {
         return sanitize(arg);
     });
 
-    // 2. Determine Primary Message
+    // 2. Determine Primary Message with printf-style string formatting
     let message = "Log event";
     if (typeof args[0] === "string") {
-        message = args[0];
+        if (args.length > 1) {
+            message = util.format(...args);
+        } else {
+            message = args[0];
+        }
     } else if (sanitizedArgs[0]?.message) {
         message = sanitizedArgs[0].message;
     }

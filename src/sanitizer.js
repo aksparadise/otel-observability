@@ -125,11 +125,12 @@ const sanitizeString = (str) => {
  *
  * @param {Array} arr - Array to sanitize
  * @param {number} depth - Current recursion depth
+ * @param {Set} seen - Set of visited objects
  * @returns {Array} - Sanitized array
  */
-const sanitizeArray = (arr, depth) => {
+const sanitizeArray = (arr, depth, seen) => {
     if (depth > MAX_DEPTH) return [REDACTION_VALUE];
-    return arr.map((item) => sanitize(item, depth + 1));
+    return arr.map((item) => sanitize(item, depth + 1, seen));
 };
 
 /**
@@ -137,9 +138,10 @@ const sanitizeArray = (arr, depth) => {
  *
  * @param {Object} obj - Object to sanitize
  * @param {number} depth - Current recursion depth
+ * @param {Set} seen - Set of visited objects
  * @returns {Object} - Sanitized object
  */
-const sanitizeObject = (obj, depth) => {
+const sanitizeObject = (obj, depth, seen) => {
     if (depth > MAX_DEPTH) return { [REDACTION_VALUE]: REDACTION_VALUE };
 
     const sanitized = {};
@@ -147,7 +149,7 @@ const sanitizeObject = (obj, depth) => {
         if (isSensitiveField(key)) {
             sanitized[key] = REDACTION_VALUE;
         } else if (value != null && typeof value === "object") {
-            sanitized[key] = sanitize(value, depth + 1);
+            sanitized[key] = sanitize(value, depth + 1, seen);
         } else {
             sanitized[key] = value;
         }
@@ -161,6 +163,7 @@ const sanitizeObject = (obj, depth) => {
  *
  * @param {any} data - The data to sanitize
  * @param {number} depth - Internal depth tracker (for recursion)
+ * @param {Set} seen - Internal circular reference tracker
  * @returns {any} - The sanitized data
  *
  * @example
@@ -175,7 +178,7 @@ const sanitizeObject = (obj, depth) => {
  * const safeData = sanitize(userData);
  * // { email: 'user@example.com', password: '[REDACTED]', apiKey: '[REDACTED]' }
  */
-export const sanitize = (data, depth = 0) => {
+export const sanitize = (data, depth = 0, seen = new Set()) => {
     // ── Performance Optimization: Limit recursion depth ──
     if (depth > MAX_DEPTH) return REDACTION_VALUE;
     if (data == null) return data;
@@ -188,13 +191,24 @@ export const sanitize = (data, depth = 0) => {
     // Handle non-objects (numbers, booleans, etc.)
     if (typeof data !== "object") return data;
 
-    // Handle Arrays
-    if (Array.isArray(data)) {
-        return sanitizeArray(data, depth);
+    // Circular dependency detection
+    if (seen.has(data)) {
+        return "[Circular]";
     }
 
-    // Handle Objects
-    return sanitizeObject(data, depth);
+    seen.add(data);
+
+    try {
+        // Handle Arrays
+        if (Array.isArray(data)) {
+            return sanitizeArray(data, depth, seen);
+        }
+
+        // Handle Objects
+        return sanitizeObject(data, depth, seen);
+    } finally {
+        seen.delete(data);
+    }
 };
 
 /**

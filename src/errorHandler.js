@@ -109,19 +109,24 @@ export const setupGlobalErrorHandler = (options = {}) => {
         }
     });
 
-    // ── Multiple Resolves Handler ───────────────────────────────────────────
-    process.on("multipleResolves", (type, promise, reason) => {
-        const resolveInfo = {
-            type,
-            promise: promise.toString(),
-            reason: reason instanceof Error ? reason.message : String(reason),
-            stack: reason instanceof Error ? reason.stack : undefined,
-        };
+    // ── Multiple Resolves Handler (Legacy Node.js versions only) ─────────────
+    const nodeMajor = typeof process !== "undefined" && process.versions?.node
+        ? parseInt(process.versions.node.split(".")[0], 10)
+        : 18;
+    if (nodeMajor < 18) {
+        process.on("multipleResolves", (type, promise, reason) => {
+            const resolveInfo = {
+                type,
+                promise: promise ? promise.toString() : "",
+                reason: reason instanceof Error ? reason.message : String(reason),
+                stack: reason instanceof Error ? reason.stack : undefined,
+            };
 
-        if (logToConsole) {
-            logger.warn("Multiple Promise Resolves", resolveInfo);
-        }
-    });
+            if (logToConsole) {
+                logger.warn("Multiple Promise Resolves", resolveInfo);
+            }
+        });
+    }
 };
 
 /**
