@@ -19,21 +19,25 @@
 
 1. [Why This Library? (The Cost of Observability Drift)](#-why-this-library-the-cost-of-observability-drift)
 2. [🧠 What This Actually Does](#-what-this-actually-does)
-3. [⚡ 30-Second Proof](#-30-second-proof)
-4. [🚀 Quick Start Guides](#-quick-start-guides)
-   - [Express / Vanilla Node.js](#1-express--vanilla-nodejs)
-   - [NestJS Framework](#2-nestjs-framework)
-   - [Next.js Web Applications](#3-nextjs-web-applications)
+3. [⚡ Quick Start & ESM Preloading (Avoiding the Hoisting Trap)](#-quick-start--esm-preloading-avoiding-the-hoisting-trap)
+   - [For ES Modules (ESM - Node 20+)](#1-for-es-modules-esm---recommended-for-node-20)
+   - [For CommonJS (CJS)](#2-for-commonjs-cjs)
+4. [🚀 Framework Setup Guides](#-framework-setup-guides)
+   - [Express / Vanilla Node.js](#express--vanilla-nodejs)
+   - [NestJS Framework](#nestjs-framework)
+   - [Next.js Web Applications](#nextjs-web-applications)
 5. [🏗️ Architecture Model](#️-architecture-model)
 6. [📦 What Gets Standardized](#-what-gets-standardized)
-7. [⚙️ Configuration Reference (Environment Variables)](#️-configuration-reference-environment-variables)
+7. [⚙️ Configuration Reference](#️-configuration-reference)
+   - [1. Environment Variables](#1-configuration-via-environment-variables)
+   - [2. setup() Options API Reference](#2-configuration-via-code-setup-api)
 8. [💡 Advanced Telemetry Usage](#-advanced-telemetry-usage)
    - [Custom Tracing Spans](#custom-tracing-spans)
-   - [Structured Logging](#structured-logging)
+   - [Correlated Structured Logging](#correlated-structured-logging)
    - [Custom Metrics Counters & Histograms](#custom-metrics-counters--histograms)
-9. [❌ When to Use Raw OpenTelemetry Instead](#-when-to-use-raw-opentelemetry-instead)
+9. [💻 Local Development vs. Production Guidelines](#-local-development-vs-production-guidelines)
 10. [🔒 Trust, Security & Compliance](#-trust-security--compliance)
-11. [🧩 Troubleshooting & Diagnostics](#-troubleshooting--diagnostic-checklist)
+11. [🧩 Troubleshooting & Silent Failure Diagnostics](#-troubleshooting--silent-failure-diagnostics)
 12. [🙋 Frequently Asked Questions (FAQ)](#-faq)
 
 ---
@@ -51,16 +55,6 @@ Within months, those files diverge. You suffer from **Observability Drift**:
 
 `@aksparadise/otel-observability` acts as an **enforceable governance layer**. By introducing it as a shared core dependency across your fleet, every service automatically adopts identical instrumentation, exporters, security filters, and defaults by design.
 
-### The Contrast: Custom Setup vs. Standardized Layer
-
-| Feature | Traditional Custom Setup | `@aksparadise/otel-observability` |
-| :--- | :--- | :--- |
-| **Setup Overhead** | 1–2 hours of manual configuration per repository | **< 2 minutes (Single function call)** |
-| **Fleet Consistency** | Configurations diverge over time (drift) | **100% uniform instrumentation contract** |
-| **Trace Continuity** | Frequently breaks due to header propagation bugs | **Consistent trace propagation by design** |
-| **Code Footprint** | 200+ lines of fragile bootstrap boilerplate | **Single entry: `await setup()`** |
-| **Security / PII Filter** | Custom or completely absent | **Circular-safe automatic PII redaction** |
-
 ---
 
 ## 🧠 What This Actually Does
@@ -75,86 +69,104 @@ This library is an **opinionated, pre-packaged distribution** of the official Op
 
 ---
 
-## ⚡ 30-Second Proof
+## ⚡ Quick Start & ESM Preloading (Avoiding the Hoisting Trap)
 
-```bash
-npm install @aksparadise/otel-observability
-```
+In Node.js, auto-instrumentation works by monkey-patching modules (like `express`, `mongoose`, or `redis`) *at load-time*. 
 
-```typescript
+> [!WARNING]
+> **The ESM "Hoisting" Trap:**  
+> In ES Modules (ESM), Node.js evaluates and executes all static `import` statements **before** running any top-level inline code. 
+> Writing:
+> ```typescript
+> import { setup } from "@aksparadise/otel-observability";
+> await setup();
+> import express from "express"; // This will NOT be instrumented!
+> ```
+> will fail because the `express` import is hoisted and executed before `setup()` can run. To prevent this, **always initialize OpenTelemetry using preloading**.
+
+### 1. For ES Modules (ESM - Recommended for Node 20+)
+
+Create an `instrumentation.js` file in your root folder:
+
+```javascript
+// instrumentation.js
 import "dotenv/config";
 import { setup } from "@aksparadise/otel-observability";
 
-// Boot OpenTelemetry before any other imports
 await setup();
 ```
 
-1. Run your service.
-2. Send a request to your API.
-3. Open your **SigNoz**, **Grafana**, or standard OTLP dashboard.
-4. View full database queries, HTTP lifecycles, and correlated console logs immediately. **No custom spans required.**
+Boot your application using the `--import` flag to preload the instrumentation before module resolution starts:
+
+```bash
+node --import ./instrumentation.js app.js
+```
 
 ---
 
-## 🚀 Quick Start Guides
+### 2. For CommonJS (CJS)
 
-> [!IMPORTANT]
-> **Initialization Order is Critical!**  
-> In Node.js, auto-instrumentation works by patching modules (like `express`, `mongoose`, or `redis`) *at load-time*. 
-> You **MUST** import `dotenv/config` and call `setup()` at the absolute top of your application's entry file, before importing any framework or third-party libraries.
+Create an `instrumentation.js` file:
 
-### 1. Express / Vanilla Node.js
+```javascript
+// instrumentation.js
+require("dotenv").config();
+const { setup } = require("@aksparadise/otel-observability");
 
-Create a `.env` file in your project root:
-
-```env
-OTEL_ENABLED=true
-OTEL_BACKEND=signoz
-OTEL_SERVICE_NAME=express-microservice
-OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+setup();
 ```
 
-Initialize inside your server startup file (e.g., `index.ts`):
+Boot your application by preloading the instrumentation script with the `-r` flag:
+
+```bash
+node -r ./instrumentation.js app.js
+```
+
+---
+
+## 🚀 Framework Setup Guides
+
+### Express / Vanilla Node.js
+
+Once you have created your `instrumentation.js` file as shown above, you can write your standard server code normally inside `app.js` without any OpenTelemetry setup pollution:
 
 ```typescript
-import "dotenv/config"; // Must be first
-import { setup } from "@aksparadise/otel-observability"; // Must be second
+// app.js
 import { otelContextMiddleware } from "@aksparadise/otel-observability/middleware";
 import express from "express";
 
-async function startServer() {
-    // 1. Initialize SDK
-    await setup();
+const app = express();
 
-    const app = express();
+// Injects user/tenant ID into tracing spans from request headers
+app.use(otelContextMiddleware);
 
-    // 2. Register context middleware (injects user/tenant ID into traces)
-    app.use(otelContextMiddleware);
+app.get("/api/data", (req, res) => {
+    res.json({ message: "Hello from traced endpoint!" });
+});
 
-    app.get("/api/data", (req, res) => {
-        res.json({ message: "Hello from traced endpoint!" });
-    });
+app.listen(3000, () => {
+    console.log("Server running on port 3000");
+});
+```
 
-    app.listen(3000, () => {
-        console.log("Server running on port 3000");
-    });
-}
-
-startServer();
+Run using the preload flag:
+```bash
+node --import ./instrumentation.js app.js
 ```
 
 ---
 
-### 2. NestJS Framework
+### NestJS Framework
 
 NestJS relies on an internal logging system that bypasses typical global console traps. We provide a custom `logger` proxy to capture all system-level and framework-level NestJS logs securely.
 
+Initialize inside your NestJS startup entrypoint (`main.ts`):
+
 ```typescript
 // main.ts
-import "dotenv/config"; // Loaded first
-import { setup } from "@aksparadise/otel-observability"; // Loaded second
 import { NestFactory } from "@nestjs/core";
 import { AppModule } from "./app.module";
+import { setup } from "@aksparadise/otel-observability";
 
 async function bootstrap() {
     // 1. Initialize telemetry
@@ -176,7 +188,7 @@ bootstrap();
 
 ---
 
-### 3. Next.js Web Applications
+### Next.js Web Applications
 
 Next.js initializes server runtimes dynamically. We integrate with Next's official `instrumentation.ts` gateway to guarantee precise server-side execution.
 
@@ -252,23 +264,45 @@ When you adopt `setup()`, your services align with **Observability Contract v1**
 
 ---
 
-## ⚙️ Configuration Reference (Environment Variables)
+## ⚙️ Configuration Reference
 
-This library integrates natively into containerized environments (Kubernetes, Docker, AWS ECS) using standard environment variables:
+The library can be configured dynamically through environment variables or programmatically in code.
 
-| Environment Variable | Type | Default | Description |
+### 1. Configuration via Environment Variables
+
+The library natively respects standard OpenTelemetry environment variables, which can be configured directly inside your `.env` or container definitions (Kubernetes, Docker, AWS ECS):
+
+| Environment Variable | Type | Default | Description / Purpose |
 | :--- | :--- | :--- | :--- |
-| `OTEL_ENABLED` | `boolean` | `false` | Set to `true` to activate OpenTelemetry exporting. |
-| `OTEL_BACKEND` | `string` | `"signoz"` | Selected backend endpoint template: `"signoz"`, `"grafana"`, or `"custom"`. |
-| `OTEL_SERVICE_NAME` | `string` | `"unknown-service"`| Service identifier for trace grouping. |
-| `OTEL_SERVICE_VERSION` | `string` | `"1.0.0"` | Logical semantic version of your microservice. |
+| `OTEL_ENABLED` | `boolean` | `false` | Enable/disable OTel telemetry export globally. |
+| `OTEL_SERVICE_NAME` | `string` | `"unknown-service"`| Logical identifier of your microservice in the APM dashboard. |
+| `OTEL_SERVICE_VERSION` | `string` | `"1.0.0"` | Logical semantic version of your service. |
+| `OTEL_BACKEND` | `string` | `"signoz"` | Chosen backend template: `"signoz"`, `"grafana"`, or `"custom"`. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`| `string` | `"http://localhost:4318"`| Gateway collector endpoint (HTTP) for `"signoz"` or `"custom"`. |
-| `GRAFANA_OTEL_ENDPOINT` | `string` | *(Grafana standard)* | Target OTLP endpoint if `OTEL_BACKEND=grafana`. |
+| `GRAFANA_OTEL_ENDPOINT` | `string` | *(Grafana standard)* | OTLP endpoint used if `OTEL_BACKEND=grafana`. |
 | `GRAFANA_API_KEY` | `string` | `""` | Bearer token to authorize Grafana Cloud metrics/logs ingestion. |
-| `OTEL_TRACE_SAMPLING_RATIO` | `number` | `1.0` | Sampling ratio (`0.0` to `1.0`). `1.0` is 100% of traces; `0.1` is 10%. |
-| `OTEL_ENVIRONMENT` | `string` | `"development"` | Environment tag (`"production"`, `"staging"`, `"development"`). |
-| `OTEL_AUTO_START` | `boolean` | `true` | Setting to `false` disables immediate setup, allowing manual `initOtel()` calls. |
+| `OTEL_TRACE_SAMPLING_RATIO` | `number` | `1.0` | Ratio of traces to record (`0.0` to `1.0`). `1.0` records 100%; `0.1` records 10%. |
+| `OTEL_ENVIRONMENT` | `string` | `"development"` | Tagged environment name (`"production"`, `"staging"`, `"development"`). |
+| `OTEL_AUTO_START` | `boolean` | `true` | Setting to `false` disables immediate setup on import, allowing custom `initOtel()`. |
 | `OTEL_LOG_LEVEL` | `string` | *(unset)* | Set to `"debug"` to expose internal OTel SDK diagnostic logging. |
+
+---
+
+### 2. Configuration via Code: `setup()` API
+
+You can override defaults or configure specific behaviors programmatically by passing configuration options directly to `setup()`:
+
+```typescript
+import { setup } from "@aksparadise/otel-observability";
+
+const observability = await setup({
+    framework: "express",            // Force specific framework context: 'express' | 'nestjs' | 'nextjs' | 'vanilla'
+    enableConsoleOutput: true,       // Print color-coded structured logs locally to process.stdout
+    enableOtelOutput: true,          // Export generated logs to OTLP collector
+    enableMonkeypatch: true,         // Intercept standard console.log/info/warn/error calls to correlate trace contexts
+    consoleColors: true,             // Enable colorized formatting on local developer terminal outputs
+});
+```
 
 ---
 
@@ -292,18 +326,30 @@ const data = await withSpan("payment.process", async (span) => {
 
 ---
 
-### Structured Logging
+### Correlated Structured Logging
 
-Log directly with the built-in logger to output fully structured, JSON-correlated logs:
+#### Option A: Using the built-in Logger (Zero Setup)
+Use the package logger to output sanitized, fully correlated JSON logs automatically matched with the active trace context:
 
 ```typescript
-import { logger } from "@aksparadise/otel-observability";
+import { logger } from "@aksparadise/otel-observability/logger";
 
-// Automatically contains active trace_id and span_id if called inside a request
+// Contains active traceId and spanId if executed within an HTTP request lifecycle
 logger.info("Order processed successfully", {
     orderId: "ord_98765",
     itemsCount: 3,
 });
+```
+
+#### Option B: Using custom Loggers (Pino, Winston)
+If you already use Winston or Pino, `@opentelemetry/auto-instrumentations-node` automatically hooks into them. Active `trace_id` and `span_id` are automatically injected into your logging payloads without changing your application code:
+
+```typescript
+import pino from "pino";
+const customLogger = pino();
+
+// The underlying OTel hooks inject active trace contexts into this payload automatically!
+customLogger.info("User completed authentication");
 ```
 
 ---
@@ -333,6 +379,53 @@ dbDuration.record(42, { table: "users", operation: "SELECT" });
 
 ---
 
+## 💻 Local Development vs. Production Guidelines
+
+To avoid excessive egress costs and CPU/Memory overhead, configure your setup variables dynamically between environments.
+
+### Local Development Configuration
+In development, you want rapid local validation, 100% trace capture, and readable terminal logging:
+
+```env
+# .env.development
+OTEL_ENABLED=true
+OTEL_TRACE_SAMPLING_RATIO=1.0  # Trace 100% of requests
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+OTEL_LOG_LEVEL=debug           # Enable raw OTel diagnostics to trace setup errors
+```
+
+```typescript
+// code
+await setup({
+    enableConsoleOutput: true,  // Print human-readable color logs to stdout
+    consoleColors: true,
+    enableMonkeypatch: true,
+});
+```
+
+---
+
+### Production Configuration
+In high-traffic production environments, use ratio-based sampling, disable verbose terminal logs, and leverage OTel bulk batch exporters to keep performance overhead minimal:
+
+```env
+# .env.production
+OTEL_ENABLED=true
+OTEL_TRACE_SAMPLING_RATIO=0.1  # Trace 10% of requests (adapts to heavy traffic)
+OTEL_EXPORTER_OTLP_ENDPOINT=https://your-production-collector:4318
+```
+
+```typescript
+// code
+await setup({
+    enableConsoleOutput: false, // Turn off verbose logs to protect process stdout IO
+    enableOtelOutput: true,
+    enableMonkeypatch: true,
+});
+```
+
+---
+
 ## ❌ When to Use Raw OpenTelemetry Instead
 
 We believe in architectural transparency. Avoid using this library if:
@@ -354,21 +447,18 @@ Observability wrappers should never act as black boxes. We prioritize security a
 
 ---
 
-## 🧩 Troubleshooting & Diagnostic Checklist
+## 🧩 Troubleshooting & Silent Failure Diagnostics
 
-### 1. No traces are appearing in my dashboard
-*   **Check `OTEL_ENABLED`**: Ensure `OTEL_ENABLED=true` is set in your environment.
-*   **Check Import Order**: Ensure `import "dotenv/config"` and `setup()` are the *first two* lines of your entry file. If libraries like `express` or `mongoose` are loaded before, tracing will fail.
-*   **Check Endpoint Port**: Ensure your OTLP gateway endpoint is reachable. Standard OTLP collectors use port **`4318`** (HTTP/JSON). If using port `4317` (gRPC), update your environment to point to `4318`.
+OpenTelemetry is designed to fail silently. When misconfigured, it will emit nothing rather than disrupting your application runtime. Use this checklist to debug missing traces:
 
-### 2. Enabling Internal SDK Diagnostics
-If spans are failing to send, enable OpenTelemetry's internal debug logs to see raw connection errors:
+### 1. Enable Internal Engine Diagnostics
+Enable OpenTelemetry's internal debug logs to see raw connection errors and registration hooks:
 
 ```env
 OTEL_LOG_LEVEL=debug
 ```
 
-Alternatively, print raw OpenTelemetry errors to standard output by setting the logger explicitly:
+Alternatively, print raw OpenTelemetry diagnostic events directly to stdout by configuring the logger explicitly:
 
 ```typescript
 import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
@@ -377,9 +467,13 @@ import { diag, DiagConsoleLogger, DiagLogLevel } from "@opentelemetry/api";
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.DEBUG);
 ```
 
-### 3. Connection Errors (`ECONNREFUSED` or `404 Not Found`)
-*   If running Node.js in a Docker container, `localhost:4318` resolves to the container itself, not your host machine.
-*   **Fix**: Update your `OTEL_EXPORTER_OTLP_ENDPOINT` to point to your Docker gateway (e.g., `http://host.docker.internal:4318`) or your collector service name (e.g., `http://otel-collector:4318`).
+### 2. Double Check Import Order
+If databases, HTTP frameworks, or message queue clients are missing spans, check if they are imported **after** `setup()` completes. ESM static imports bypass inline sequence rules. **You must use the preloading strategies** (`--import` or `-r` flags) shown in the [Quick Start section](#-quick-start--esm-preloading-avoiding-the-hoisting-trap).
+
+### 3. Check Endpoint Network & Port Protocol
+*   If running Node.js inside a Docker container, `localhost:4318` resolves to the container itself, not your host machine.
+    *   **Fix**: Update your `OTEL_EXPORTER_OTLP_ENDPOINT` to point to your Docker gateway (e.g., `http://host.docker.internal:4318`) or your collector service name (e.g., `http://otel-collector:4318`).
+*   **Protocol Port Mismatch**: Verify if your collector expects **gRPC** (usually port `4317`) or **HTTP/Protobuf** (usually port `4318`). This package defaults to OTLP over HTTP, so verify your endpoint URL ends in port `4318`.
 
 ---
 
