@@ -1,6 +1,6 @@
 {
     "name": "@aksparadise/otel-observability",
-    "version": "1.1.25",
+    "version": "1.1.26",
     "description": "Production-ready OpenTelemetry plugin for SigNoz and Grafana observability. Minimal setup for Node.js, Express, NestJS, Next.js. Automatic instrumentation, distributed tracing, metrics, and logging. Created by AksParadise.",
     "type": "module",
     "main": "./dist/cjs/index.cjs",
@@ -160,18 +160,18 @@
     "license": "MIT",
     "dependencies": {
         "@opentelemetry/api": "^1.9.1",
-        "@opentelemetry/api-logs": "^0.218.0",
-        "@opentelemetry/auto-instrumentations-node": "^0.76.0",
-        "@opentelemetry/exporter-logs-otlp-http": "^0.218.0",
-        "@opentelemetry/exporter-metrics-otlp-http": "^0.218.0",
-        "@opentelemetry/exporter-trace-otlp-http": "^0.218.0",
-        "@opentelemetry/instrumentation-graphql": "^0.66.0",
-        "@opentelemetry/resources": "^2.7.1",
-        "@opentelemetry/sdk-logs": "^0.218.0",
-        "@opentelemetry/sdk-metrics": "^2.7.1",
-        "@opentelemetry/sdk-node": "^0.218.0",
-        "@opentelemetry/sdk-trace-base": "^2.7.1",
-        "@opentelemetry/semantic-conventions": "^1.40.0"
+        "@opentelemetry/api-logs": "^0.219.0",
+        "@opentelemetry/auto-instrumentations-node": "^0.77.0",
+        "@opentelemetry/exporter-logs-otlp-http": "^0.219.0",
+        "@opentelemetry/exporter-metrics-otlp-http": "^0.219.0",
+        "@opentelemetry/exporter-trace-otlp-http": "^0.219.0",
+        "@opentelemetry/instrumentation-graphql": "^0.67.0",
+        "@opentelemetry/resources": "^2.8.0",
+        "@opentelemetry/sdk-logs": "^0.219.0",
+        "@opentelemetry/sdk-metrics": "^2.8.0",
+        "@opentelemetry/sdk-node": "^0.219.0",
+        "@opentelemetry/sdk-trace-base": "^2.8.0",
+        "@opentelemetry/semantic-conventions": "^1.41.1"
     },
     "devDependencies": {
         "@eslint/js": "^9.30.1",
